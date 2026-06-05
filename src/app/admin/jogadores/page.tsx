@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { createPlayer } from '@/app/admin/actions'
+import { PlayerForm } from '@/components/player-form'
 import { PlayerToggle } from '@/components/player-toggle'
 import { getAllPlayers } from '@/db/queries'
 
@@ -14,14 +14,7 @@ export default async function JogadoresPage() {
         <Link href="/admin" className="text-xs font-semibold text-green-700">← Admin</Link>
       </header>
 
-      <form action={async (fd) => { 'use server'; await createPlayer(fd) }} className="flex gap-2">
-        <input name="name" required placeholder="Nome do jogador"
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-        <label className="flex items-center gap-1 text-xs font-semibold">
-          <input type="checkbox" name="isMonthlyActive" value="true" /> Mensalista
-        </label>
-        <button className="rounded-lg bg-green-600 px-4 text-sm font-bold text-white">Add</button>
-      </form>
+      <PlayerForm />
 
       <ul className="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
         {list.map((p) => (
