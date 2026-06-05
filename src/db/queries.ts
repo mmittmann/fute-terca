@@ -54,7 +54,7 @@ export function getEvents() {
 }
 
 export function getEventEntries() {
-  return db.select().from(entries).where(eq(entries.type, 'evento'))
+  return db.select().from(entries).where(eq(entries.type, 'evento')).orderBy(desc(entries.createdAt))
 }
 
 export async function getShirtsWithPlayers() {
@@ -73,5 +73,5 @@ export async function getShirtsWithPlayers() {
 }
 
 export function getShirtEntries() {
-  return db.select().from(entries).where(eq(entries.type, 'camisa'))
+  return db.select().from(entries).where(eq(entries.type, 'camisa')).orderBy(desc(entries.createdAt))
 }

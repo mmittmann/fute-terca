@@ -8,11 +8,12 @@ import {
   appSettings, entries, events, monthlyFeeTable, months, players, shirts, yearSettings,
 } from '@/db/schema'
 import { parseToCents } from '@/lib/money'
+import { requireAdmin } from '@/auth/require-admin'
 
 export type ActionResult = { ok: true } | { ok: false; error: string; needsConfirm?: boolean }
 
 function revalidateAll() {
-  for (const p of ['/', '/eventos', '/camisas', '/historico', '/admin']) revalidatePath(p)
+  revalidatePath('/', 'layout')
 }
 
 const entrySchema = z.object({
@@ -20,13 +21,14 @@ const entrySchema = z.object({
   month: z.coerce.number().int().min(1).max(12),
   type: z.enum(['mensal', 'avulso', 'quadra', 'goleiro', 'evento', 'camisa', 'outro']),
   amount: z.string().min(1),
-  playerId: z.coerce.number().int().optional(),
-  eventId: z.coerce.number().int().optional(),
+  playerId: z.preprocess((v) => (v === '' || v == null ? undefined : v), z.coerce.number().int().positive().optional()),
+  eventId: z.preprocess((v) => (v === '' || v == null ? undefined : v), z.coerce.number().int().positive().optional()),
   description: z.string().trim().max(200).optional(),
-  confirmed: z.coerce.boolean().optional(),
+  confirmed: z.literal('true').transform(() => true).optional(),
 })
 
 export async function createEntry(formData: FormData): Promise<ActionResult> {
+  await requireAdmin()
   const parsed = entrySchema.safeParse(Object.fromEntries(formData))
   if (!parsed.success) return { ok: false, error: 'Dados inválidos' }
   const d = parsed.data
@@ -57,41 +59,49 @@ export async function createEntry(formData: FormData): Promise<ActionResult> {
 }
 
 export async function deleteEntry(id: number): Promise<ActionResult> {
-  await db.update(shirts).set({ paidEntryId: null }).where(eq(shirts.paidEntryId, id))
-  await db.delete(entries).where(eq(entries.id, id))
+  await requireAdmin()
+  await db.transaction(async (tx) => {
+    await tx.update(shirts).set({ paidEntryId: null }).where(eq(shirts.paidEntryId, id))
+    await tx.delete(entries).where(eq(entries.id, id))
+  })
   revalidateAll()
   return { ok: true }
 }
 
 const playerSchema = z.object({
   name: z.string().trim().min(1).max(60),
-  isMonthlyActive: z.coerce.boolean().optional(),
+  isMonthlyActive: z.literal('true').transform(() => true).optional(),
 })
 
 export async function createPlayer(formData: FormData): Promise<ActionResult> {
+  await requireAdmin()
   const parsed = playerSchema.safeParse(Object.fromEntries(formData))
   if (!parsed.success) return { ok: false, error: 'Nome inválido' }
-  await db
+  const rows = await db
     .insert(players)
     .values({ name: parsed.data.name, isMonthlyActive: parsed.data.isMonthlyActive ?? false })
     .onConflictDoNothing()
+    .returning({ id: players.id })
+  if (rows.length === 0) return { ok: false, error: 'Jogador já existe' }
   revalidateAll()
   return { ok: true }
 }
 
 export async function togglePlayerActive(id: number, active: boolean): Promise<ActionResult> {
+  await requireAdmin()
   await db.update(players).set({ isMonthlyActive: active }).where(eq(players.id, id))
   revalidateAll()
   return { ok: true }
 }
 
 const monthSchema = z.object({
-  year: z.coerce.number().int(),
+  year: z.coerce.number().int().min(2020).max(2100),
   month: z.coerce.number().int().min(1).max(12),
   gamesCount: z.coerce.number().int().min(1).max(6),
 })
 
 export async function upsertMonth(formData: FormData): Promise<ActionResult> {
+  await requireAdmin()
   const parsed = monthSchema.safeParse(Object.fromEntries(formData))
   if (!parsed.success) return { ok: false, error: 'Dados inválidos' }
   const d = parsed.data
@@ -104,13 +114,14 @@ export async function upsertMonth(formData: FormData): Promise<ActionResult> {
 }
 
 const yearSettingsSchema = z.object({
-  year: z.coerce.number().int(),
+  year: z.coerce.number().int().min(2020).max(2100),
   avulsoFee: z.string(),
   courtFeePerGame: z.string(),
   goalkeeperFeePerGame: z.string(),
 })
 
 export async function upsertYearSettings(formData: FormData): Promise<ActionResult> {
+  await requireAdmin()
   const parsed = yearSettingsSchema.safeParse(Object.fromEntries(formData))
   if (!parsed.success) return { ok: false, error: 'Dados inválidos' }
   const d = parsed.data
@@ -130,12 +141,13 @@ export async function upsertYearSettings(formData: FormData): Promise<ActionResu
 }
 
 const feeRowSchema = z.object({
-  year: z.coerce.number().int(),
+  year: z.coerce.number().int().min(2020).max(2100),
   gamesCount: z.coerce.number().int().min(1).max(6),
   fee: z.string(),
 })
 
 export async function upsertMonthlyFee(formData: FormData): Promise<ActionResult> {
+  await requireAdmin()
   const parsed = feeRowSchema.safeParse(Object.fromEntries(formData))
   if (!parsed.success) return { ok: false, error: 'Dados inválidos' }
   const feeCents = parseToCents(parsed.data.fee)
@@ -155,6 +167,7 @@ const eventSchema = z.object({
 })
 
 export async function createEvent(formData: FormData): Promise<ActionResult> {
+  await requireAdmin()
   const parsed = eventSchema.safeParse(Object.fromEntries(formData))
   if (!parsed.success) return { ok: false, error: 'Nome inválido' }
   await db.insert(events).values({ name: parsed.data.name, date: parsed.data.date || null })
@@ -170,6 +183,7 @@ const shirtSchema = z.object({
 })
 
 export async function createShirt(formData: FormData): Promise<ActionResult> {
+  await requireAdmin()
   const parsed = shirtSchema.safeParse(Object.fromEntries(formData))
   if (!parsed.success) return { ok: false, error: 'Dados inválidos' }
   const valueCents = parseToCents(parsed.data.value)
@@ -181,20 +195,21 @@ export async function createShirt(formData: FormData): Promise<ActionResult> {
 }
 
 export async function markShirtPaid(shirtId: number, year: number, month: number): Promise<ActionResult> {
-  const rows = await db.select().from(shirts).where(eq(shirts.id, shirtId))
-  const shirt = rows[0]
-  if (!shirt) return { ok: false, error: 'Camisa não encontrada' }
-  if (shirt.paidEntryId) return { ok: false, error: 'Camisa já paga' }
-  const inserted = await db
-    .insert(entries)
-    .values({
+  await requireAdmin()
+  const result = await db.transaction(async (tx) => {
+    const rows = await tx.select().from(shirts).where(eq(shirts.id, shirtId))
+    const shirt = rows[0]
+    if (!shirt) return { ok: false as const, error: 'Camisa não encontrada' }
+    if (shirt.paidEntryId) return { ok: false as const, error: 'Camisa já paga' }
+    const inserted = await tx.insert(entries).values({
       year, month, type: 'camisa', amountCents: shirt.valueCents,
       playerId: shirt.playerId, description: `Camisa ${shirt.size}`,
-    })
-    .returning({ id: entries.id })
-  await db.update(shirts).set({ paidEntryId: inserted[0].id }).where(eq(shirts.id, shirtId))
-  revalidateAll()
-  return { ok: true }
+    }).returning({ id: entries.id })
+    await tx.update(shirts).set({ paidEntryId: inserted[0].id }).where(eq(shirts.id, shirtId))
+    return { ok: true as const }
+  })
+  if (result.ok) revalidateAll()
+  return result
 }
 
 const settingSchema = z.object({
@@ -203,6 +218,7 @@ const settingSchema = z.object({
 })
 
 export async function saveSetting(formData: FormData): Promise<ActionResult> {
+  await requireAdmin()
   const parsed = settingSchema.safeParse(Object.fromEntries(formData))
   if (!parsed.success) return { ok: false, error: 'Dados inválidos' }
   const { key, value } = parsed.data
