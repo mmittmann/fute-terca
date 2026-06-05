@@ -24,11 +24,12 @@ export default async function DashboardPage() {
   const nameById = new Map(allPlayers.map((p) => [p.id, p.name]))
 
   const rows: PaymentRow[] = [
-    ...status.pending.map((p) => ({ name: p.name, status: 'pendente' as const })),
-    ...status.paid.map((p) => ({ name: p.name, status: 'pago' as const })),
+    ...status.pending.map((p) => ({ id: `p-${p.id}`, name: p.name, status: 'pendente' as const })),
+    ...status.paid.map((p) => ({ id: `p-${p.id}`, name: p.name, status: 'pago' as const })),
     ...monthEntries
       .filter((e) => e.type === 'avulso')
       .map((e) => ({
+        id: `e-${e.id}`,
         name: e.playerId ? (nameById.get(e.playerId) ?? '?') : (e.description ?? '?'),
         status: 'avulso' as const,
         amountCents: e.amountCents,

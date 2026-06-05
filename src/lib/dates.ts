@@ -8,6 +8,9 @@ export function monthLabel(year: number, month: number): string {
 }
 
 export function currentYearMonth(): { year: number; month: number } {
-  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
-  return { year: now.getFullYear(), month: now.getMonth() + 1 }
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit',
+  }).formatToParts(new Date())
+  const get = (type: string) => Number(parts.find((p) => p.type === type)!.value)
+  return { year: get('year'), month: get('month') }
 }

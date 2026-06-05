@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { formatBRL } from '@/lib/money'
 
 export interface PaymentRow {
+  id: string
   name: string
   status: 'pago' | 'pendente' | 'avulso'
   amountCents?: number
@@ -13,9 +14,11 @@ const FILTERS = ['Todos', 'Pendentes', 'Avulsos'] as const
 
 export function PaymentList({ rows }: { rows: PaymentRow[] }) {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('Todos')
-  const visible = rows.filter((r) =>
-    filter === 'Todos' ? true : filter === 'Pendentes' ? r.status === 'pendente' : r.status === 'avulso',
-  )
+  const visible = rows.filter((r) => {
+    if (filter === 'Todos') return true
+    if (filter === 'Pendentes') return r.status === 'pendente'
+    return r.status === 'avulso'
+  })
   return (
     <section>
       <div className="flex gap-2 px-4 pt-3">
@@ -32,8 +35,8 @@ export function PaymentList({ rows }: { rows: PaymentRow[] }) {
         ))}
       </div>
       <ul className="mt-2 divide-y divide-slate-200 bg-white">
-        {visible.map((r, i) => (
-          <li key={`${r.name}-${i}`} className="flex items-center justify-between px-4 py-2.5 text-sm">
+        {visible.map((r) => (
+          <li key={r.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
             <span className="font-semibold">{r.name}</span>
             {r.status === 'pago' && <span className="font-bold text-green-600">✓ Pago</span>}
             {r.status === 'pendente' && <span className="font-bold text-red-600">Pendente</span>}
