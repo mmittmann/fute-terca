@@ -21,7 +21,7 @@ Web app **mobile-first**, instalável como PWA (manifest + ícone; sem service w
 | Camada | Escolha |
 |---|---|
 | Framework | Next.js (App Router) + TypeScript |
-| UI | Tailwind CSS + shadcn/ui, gráficos com Recharts |
+| UI | Tailwind CSS (componentes próprios — shadcn/ui só se surgir necessidade), gráficos com Recharts |
 | Banco | Postgres (Neon via Vercel Marketplace) |
 | ORM | Drizzle |
 | Escritas | Server Actions com validação Zod |
