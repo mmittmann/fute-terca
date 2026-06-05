@@ -57,6 +57,9 @@ A planilha é essencialmente um livro-caixa (nome, valor, mês, tipo). O modelo 
 **`shirts`** — pedidos de camisa
 - `id`, `player_id`, `size` (P/M/G/GG), `value`, `note` (ex: "as duas"), `paid_entry_id` (nullable → FK `entries` quando pago)
 
+**`app_settings`** — configurações gerais (chave-valor)
+- `key`, `value` — ex: `group_name` ("Futebol de Quinta"), `pix_key` (usada na mensagem de cobrança)
+
 ### Regras de negócio
 
 - **Valor do mês**: `months.games_count` + `monthly_fee_table[year]` → mensalidade esperada; `games_count × court_fee_per_game` → custo previsto da quadra.
@@ -89,7 +92,7 @@ Navegação inferior: **Mensal | Eventos | Camisas | Histórico** (+ Admin para 
 - **Lançamentos**: formulário clássico (escolhido em mockup) — jogador, tipo (chips: Mensal/Avulso/Quadra/Goleiro/Evento/Camisa/Outro), valor (pré-preenchido pela regra do mês quando aplicável), mês, descrição. Lista de lançamentos do mês com edição/exclusão.
 - **Cobrança**: botão "Copiar cobrança" gera texto pronto com pendentes do mês e valores (ex: "Fala pessoal! Mensalidade de junho (R$ 75): faltam Tales, Tio Valdo e Erick. PIX: ...") e copia para a área de transferência.
 - **Jogadores**: cadastro, ativar/desativar mensalista.
-- **Configurações**: tabela de preços por ano (reajuste), jogos de cada mês, criação de eventos, pedidos de camisa.
+- **Configurações**: tabela de preços por ano (reajuste), jogos de cada mês, criação de eventos, pedidos de camisa, nome do grupo e chave PIX (usados no header e na mensagem de cobrança).
 
 ## Importação do histórico
 
