@@ -21,4 +21,10 @@ describe('session token', () => {
     expect(verifySessionToken('garbage')).toBe(false)
     expect(verifySessionToken(undefined)).toBe(false)
   })
+  it('lança erro se AUTH_SECRET ausente', () => {
+    const saved = process.env.AUTH_SECRET
+    delete process.env.AUTH_SECRET
+    expect(() => createSessionToken()).toThrow('AUTH_SECRET')
+    process.env.AUTH_SECRET = saved
+  })
 })

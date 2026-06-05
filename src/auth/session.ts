@@ -1,10 +1,17 @@
+// Token stateless — para invalidar sessões, rotacione AUTH_SECRET.
 import { createHmac, timingSafeEqual } from 'node:crypto'
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
 export const SESSION_COOKIE = 'admin_session'
 
+function getSecret(): string {
+  const secret = process.env.AUTH_SECRET
+  if (!secret) throw new Error('AUTH_SECRET env var is required')
+  return secret
+}
+
 function sign(payload: string): string {
-  return createHmac('sha256', process.env.AUTH_SECRET!).update(payload).digest('hex')
+  return createHmac('sha256', getSecret()).update(payload).digest('hex')
 }
 
 export function createSessionToken(now: number = Date.now()): string {
