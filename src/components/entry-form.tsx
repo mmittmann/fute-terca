@@ -113,6 +113,8 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
         <p className={`text-xs font-semibold ${msg.kind === 'ok' ? 'text-green-600' : 'text-red-600'}`}>
           {msg.text}
           {msg.kind === 'confirm' && (
+            // Nota: o re-submit lê o form no clique do Confirmar; se o admin alterar campos
+            // entre o aviso e a confirmação, vale o estado atual (aceitável p/ 1 admin).
             <button
               type="button"
               onClick={() => formRef.current && submit(new FormData(formRef.current), true)}

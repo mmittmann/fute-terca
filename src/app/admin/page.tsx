@@ -35,12 +35,12 @@ export default async function AdminPage() {
     amountCents: e.amountCents,
   }))
 
-  const cobranca = buildCobrancaMessage({
+  const cobranca = fee !== null ? buildCobrancaMessage({
     monthLabel: monthLabel(year, month),
-    feeCents: fee ?? 0,
+    feeCents: fee,
     pendingNames: status.pending.map((p) => p.name),
     pixKey: settings.pix_key ?? '(configure a chave PIX em /admin/config)',
-  })
+  }) : ''
 
   return (
     <main className="flex flex-col gap-4 p-3">
@@ -69,11 +69,17 @@ export default async function AdminPage() {
         }}
       />
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="mb-2 text-sm font-bold">Cobrança — {status.pending.length} pendentes</h2>
-        <pre className="mb-3 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-xs">{cobranca}</pre>
-        <CopyButton text={cobranca} />
-      </section>
+      {fee !== null ? (
+        <section className="rounded-xl border border-slate-200 bg-white p-4">
+          <h2 className="mb-2 text-sm font-bold">Cobrança — {status.pending.length} pendentes</h2>
+          <pre className="mb-3 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-xs">{cobranca}</pre>
+          <CopyButton text={cobranca} />
+        </section>
+      ) : (
+        <p className="rounded-lg bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-800">
+          Cobrança indisponível — configure os jogos do mês e a tabela de mensalidade em /admin/config.
+        </p>
+      )}
 
       <section>
         <h2 className="mb-2 text-sm font-bold">Lançamentos do mês</h2>

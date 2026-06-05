@@ -27,7 +27,13 @@ export function EntryList({ rows }: { rows: EntryRow[] }) {
             </span>
             <button
               disabled={pending}
-              onClick={() => { if (confirm(`Excluir lançamento de ${r.label}?`)) start(() => deleteEntry(r.id).then(() => {})) }}
+              onClick={() => {
+                if (!confirm(`Excluir lançamento de ${r.label}?`)) return
+                start(async () => {
+                  const res = await deleteEntry(r.id)
+                  if (!res.ok) alert(res.error)
+                })
+              }}
               className="text-slate-400 hover:text-red-600"
               aria-label="Excluir"
             >
