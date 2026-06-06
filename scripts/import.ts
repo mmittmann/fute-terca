@@ -30,12 +30,14 @@ const PLAYER_ALIASES: { name: string; aliases: string[] }[] = [
   { name: 'Matheuszinho', aliases: ['Matheus', 'Matheus Bittencourt'] },
   { name: 'Marcelo Machado', aliases: ['Marcelo'] },
   { name: 'Deparis', aliases: ['DeParis', 'deparis'] },
+  { name: 'Mauricio', aliases: ['Maurício'] },
   // demais nomes entram automaticamente como canônicos na 1ª ocorrência
 ]
 
 const NON_PLAYER_NAMES = new Set([
   'quadra', 'goleiro', 'goleiro (app)', 'churrasqueira', 'carne', 'pagamentos', 'compra',
   'camisa horário', 'churras', 'cod', 'mensalidade', 'reembolso leandro', 'saldo salchipão', 'tw7',
+  'horário',
 ])
 
 interface RawEntry {
@@ -163,6 +165,16 @@ async function main() {
       }
     }
   }
+  // Nomes da aba Camisas que não são non-player e não estão ainda canônicos
+  for (const s of shirtRows) {
+    if (NON_PLAYER_NAMES.has(s.name.toLowerCase())) continue
+    const resolved = resolveName(s.name, aliasMap)
+    if (!resolved && !canonical.has(s.name)) {
+      canonical.add(s.name)
+      aliasMap.set(s.name.toLowerCase(), s.name)
+      unresolved.set(s.name, (unresolved.get(s.name) ?? 0) + 1)
+    }
+  }
   report.push(`Jogadores detectados: ${canonical.size}`)
   report.push(`Nomes auto-canonizados (CONFERIR se não são variações): ${[...unresolved.keys()].sort().join(', ')}`)
 
@@ -221,6 +233,16 @@ async function main() {
 
   // shirts (com valor = pago; gera entry camisa)
   for (const s of shirtRows) {
+    if (NON_PLAYER_NAMES.has(s.name.toLowerCase())) {
+      // Não é jogador (ex: Horário): apenas entry de pagamento, sem shirt record
+      if (s.valueCents) {
+        await db.insert(entries).values({
+          year: 2025, month: 1, type: 'camisa', amountCents: s.valueCents,
+          playerId: null, description: `Camisa - ${s.name}`,
+        })
+      }
+      continue
+    }
     const canonicalName = resolveName(s.name, aliasMap) ?? s.name
     const pid = playerIds.get(canonicalName)
     if (!pid) { console.log(`Camisa pulada (jogador não cadastrado): ${s.name}`); continue }
