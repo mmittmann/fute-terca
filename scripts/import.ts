@@ -1,4 +1,9 @@
-/* Importa o histórico da planilha para o banco.
+/* Importa o histórico da planilha para o banco (SCRIPT ONE-OFF).
+ * AVISO: --write em banco já importado é bloqueado (guard). Para reimportar,
+ * trunque as tabelas antes: TRUNCATE entries, shirts, events, months, players,
+ * monthly_fee_table, year_settings, app_settings RESTART IDENTITY CASCADE;
+ * Workflow: 1) dry-run  2) revisar nomes auto-canonizados e totais
+ *           3) ajustar PLAYER_ALIASES  4) --write
  * Uso:  npx tsx scripts/import.ts          → dry-run (relatório)
  *       npx tsx scripts/import.ts --write  → grava no banco
  */
@@ -59,7 +64,9 @@ function parseMes(v: unknown): { year: number; month: number } | null {
   if (typeof v !== 'string') return null
   const m = v.trim().match(/^(\d{1,2})\/(\d{2})$/)
   if (!m) return null
-  return { month: Number(m[1]), year: 2000 + Number(m[2]) }
+  const month = Number(m[1])
+  if (month < 1 || month > 12) return null
+  return { month, year: 2000 + Number(m[2]) }
 }
 
 function classify(name: string, tipo: string): RawEntry['type'] {
@@ -193,6 +200,13 @@ async function main() {
     return
   }
 
+  // ---- Guard de re-execução ----
+  const existing = await db.select({ id: entries.id }).from(entries).limit(1)
+  if (existing.length > 0) {
+    console.error('ERRO: o banco já contém lançamentos. Este script é one-off — para reimportar, limpe as tabelas antes (TRUNCATE ... RESTART IDENTITY CASCADE).')
+    process.exit(1)
+  }
+
   // ---- Gravação ----
   // players
   const playerIds = new Map<string, number>()
@@ -201,8 +215,8 @@ async function main() {
     const r = await db.insert(players).values({ name, aliases }).onConflictDoNothing().returning({ id: players.id })
     if (r[0]) playerIds.set(name, r[0].id)
   }
-  const existing = await db.select().from(players)
-  for (const p of existing) playerIds.set(p.name, p.id)
+  const existingPlayers = await db.select().from(players)
+  for (const p of existingPlayers) playerIds.set(p.name, p.id)
 
   // months (games dos tipos "N JOGOS"; default 4 — ajustar depois no admin)
   for (const k of [...totals.keys()].sort()) {
