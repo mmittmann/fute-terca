@@ -12,16 +12,30 @@ const WRITE = process.argv.includes('--write')
 
 // ---- Cadastro canônico + aliases (ajustar aqui conforme o relatório apontar) ----
 const PLAYER_ALIASES: { name: string; aliases: string[] }[] = [
-  { name: 'Samuka', aliases: ['Samuca'] },
-  { name: 'Tio Valdo', aliases: ['Tio Waldo'] },
+  { name: 'Samuka', aliases: ['Samuca', 'Samoel'] },
+  { name: 'Tio Valdo', aliases: ['Tio Waldo', 'Valdo'] },
   { name: 'Brandão', aliases: ['Brandao'] },
   { name: 'Gui', aliases: ['Guilhere', 'Guilherme'] },
-  { name: 'Matheuszinho', aliases: [] },
+  { name: 'Filipinho', aliases: ['Felipinho', 'FIlipinho'] },
+  { name: 'Leandrinho', aliases: ['Lenadrinho'] },
+  { name: 'Marcão', aliases: ['Marcao'] },
+  { name: 'Tio Zé', aliases: ['Ze', 'Zé', 'Tio Ze'] },
+  { name: 'Vini Santiago', aliases: ['Vinicius Santiago', 'Vini'] },
+  { name: 'Malcom', aliases: ['Malcon'] },
+  { name: 'Roberto (goleiro)', aliases: ['Roberto', 'Roberto (Goleiro)', 'Goleiro Roberto'] },
+  { name: 'Vitor', aliases: ['Victor'] },
+  { name: 'Tales', aliases: ['Thalles'] },
+  { name: 'Leandro Melo', aliases: ['Leandro'] },
+  { name: 'Leonardo Melo', aliases: ['Leonardo'] },
+  { name: 'Matheuszinho', aliases: ['Matheus', 'Matheus Bittencourt'] },
+  { name: 'Marcelo Machado', aliases: ['Marcelo'] },
+  { name: 'Deparis', aliases: ['DeParis', 'deparis'] },
   // demais nomes entram automaticamente como canônicos na 1ª ocorrência
 ]
 
 const NON_PLAYER_NAMES = new Set([
   'quadra', 'goleiro', 'goleiro (app)', 'churrasqueira', 'carne', 'pagamentos', 'compra',
+  'camisa horário', 'churras', 'cod', 'mensalidade', 'reembolso leandro', 'saldo salchipão', 'tw7',
 ])
 
 interface RawEntry {
@@ -86,7 +100,8 @@ async function main() {
         const g = gamesFromTipo(tipo)
         if (g) gamesByMonth.set(`${ym.year}-${ym.month}`, g)
       }
-      raw.push({ name, amountCents, ...ym, type, description: type === 'quadra' || type === 'goleiro' ? tipo || name : null })
+      const isNonPlayer = NON_PLAYER_NAMES.has(name.toLowerCase())
+      raw.push({ name, amountCents, ...ym, type, description: type === 'quadra' || type === 'goleiro' ? tipo || name : isNonPlayer ? name : null })
     }
     report.push(`Aba ${sheetName}: ${rows.length} linhas, ${skipped} puladas (header/sem nome/valor/mês)`)
   }
