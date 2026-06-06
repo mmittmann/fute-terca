@@ -4,9 +4,11 @@ import {
 } from '@/app/admin/actions'
 import {
   getAllMonths, getAllPlayers, getAllYearSettings, getEvents, getFeeTable, getSettingsMap,
+  getShirtsWithPlayers,
 } from '@/db/queries'
 import { currentYearMonth } from '@/lib/dates'
 import { formatBRL } from '@/lib/money'
+import { ShirtPayButton } from '@/components/shirt-pay-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,8 +17,9 @@ const btnCls = 'rounded-lg bg-green-600 px-3 py-1.5 text-sm font-bold text-white
 
 export default async function ConfigPage() {
   const { year, month } = currentYearMonth()
-  const [settings, yearsCfg, feeTable, monthsList, players, eventsList] = await Promise.all([
+  const [settings, yearsCfg, feeTable, monthsList, players, eventsList, shirtsList] = await Promise.all([
     getSettingsMap(), getAllYearSettings(), getFeeTable(), getAllMonths(), getAllPlayers(), getEvents(),
+    getShirtsWithPlayers(),
   ])
 
   return (
@@ -108,6 +111,17 @@ export default async function ConfigPage() {
           <input name="note" placeholder="Obs (opcional)" className={inputCls} />
           <button className={`col-span-2 ${btnCls}`}>Criar pedido</button>
         </form>
+        <ul className="mt-3 divide-y divide-slate-100 text-xs">
+          {shirtsList.filter((s) => !s.paidEntryId).map((s) => (
+            <li key={s.id} className="flex items-center justify-between py-1.5">
+              <span>{s.playerName} · {s.size} · {formatBRL(s.valueCents)}</span>
+              <ShirtPayButton shirtId={s.id} year={year} month={month} />
+            </li>
+          ))}
+          {shirtsList.every((s) => s.paidEntryId) && (
+            <li className="py-1.5 text-slate-400">Nenhuma camisa pendente.</li>
+          )}
+        </ul>
       </section>
     </main>
   )
