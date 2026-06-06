@@ -9,9 +9,7 @@ export function PlayerToggle({ id, active }: { id: number; active: boolean }) {
     <button
       disabled={pending}
       onClick={() => start(() => togglePlayerActive(id, !active).then(() => {}))}
-      className={`rounded-full px-3 py-1 text-xs font-bold ${
-        active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
-      }`}
+      className={`shrink-0 transition disabled:opacity-50 ${active ? 'chip-volt' : 'rounded-full border border-line bg-transparent px-2.5 py-1 text-[11px] font-bold text-moss/70 hover:text-moss'}`}
     >
       {active ? 'Mensalista ✓' : 'Inativo'}
     </button>

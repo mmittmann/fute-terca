@@ -14,7 +14,7 @@ export function ShirtPayButton({ shirtId, year, month }: { shirtId: number; year
           if (!r.ok) alert(r.error)
         })
       }
-      className="rounded-lg bg-green-600 px-3 py-1 text-xs font-bold text-white disabled:opacity-50"
+      className="btn-volt !px-2.5 !py-1 !text-[11px]"
     >
       Marcar paga
     </button>

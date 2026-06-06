@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Controle financeiro da pelada',
     start_url: '/',
     display: 'standalone',
-    background_color: '#f8fafc',
-    theme_color: '#16a34a',
+    background_color: '#0a140e',
+    theme_color: '#0a140e',
     icons: [{ src: '/icon.svg', sizes: 'any', type: 'image/svg+xml' }],
   }
 }

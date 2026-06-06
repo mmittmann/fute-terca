@@ -43,48 +43,62 @@ export default async function AdminPage() {
   }) : ''
 
   return (
-    <main className="flex flex-col gap-4 p-3">
-      <header className="flex items-center justify-between">
-        <h1 className="text-lg font-bold">🔒 Admin · {monthLabel(year, month)}</h1>
-        <nav className="flex gap-3 text-xs font-semibold text-green-700">
-          <Link href="/admin/jogadores">Jogadores</Link>
-          <Link href="/admin/config">Config</Link>
-          <Link href="/">Sair p/ app</Link>
-        </nav>
+    <main>
+      <header className="page-header rise">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="label">Vestiário · {monthLabel(year, month)}</p>
+            <h1 className="mt-1.5 font-display text-[32px] uppercase leading-none tracking-wide text-ink">Admin</h1>
+          </div>
+          <nav className="flex gap-1.5 pb-0.5">
+            <Link href="/admin/jogadores" className="btn-ghost">Jogadores</Link>
+            <Link href="/admin/config" className="btn-ghost">Config</Link>
+            <Link href="/" className="btn-ghost">Sair</Link>
+          </nav>
+        </div>
       </header>
 
-      {!monthRow && (
-        <p className="rounded-lg bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-800">
-          Mês sem nº de jogos definido — configure em /admin/config para calcular a mensalidade.
-        </p>
-      )}
+      <div className="flex flex-col gap-3 p-3 pt-4">
+        {!monthRow && (
+          <p className="warn-sand rise">
+            Mês sem nº de jogos definido — configure em Config para calcular a mensalidade.
+          </p>
+        )}
 
-      <EntryForm
-        refs={{
-          players: allPlayers.map((p) => ({ id: p.id, name: p.name })),
-          events: eventsList.map((ev) => ({ id: ev.id, name: ev.name })),
-          year, month,
-          defaultFee: centsToInput(fee),
-          defaultAvulso: centsToInput(yearCfg?.avulsoFeeCents ?? null),
-        }}
-      />
+        <div className="rise rise-1">
+          <EntryForm
+            refs={{
+              players: allPlayers.map((p) => ({ id: p.id, name: p.name })),
+              events: eventsList.map((ev) => ({ id: ev.id, name: ev.name })),
+              year, month,
+              defaultFee: centsToInput(fee),
+              defaultAvulso: centsToInput(yearCfg?.avulsoFeeCents ?? null),
+            }}
+          />
+        </div>
 
-      {fee !== null ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-4">
-          <h2 className="mb-2 text-sm font-bold">Cobrança — {status.pending.length} pendentes</h2>
-          <pre className="mb-3 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-xs">{cobranca}</pre>
-          <CopyButton text={cobranca} />
+        {fee !== null ? (
+          <section className="card rise rise-2 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="label">Cobrança</h2>
+              <span className="chip-clay">{status.pending.length} pendentes</span>
+            </div>
+            <pre className="mb-3 whitespace-pre-wrap rounded-xl border border-line/50 bg-pitch/80 p-3.5 font-sans text-xs leading-relaxed text-moss">
+              {cobranca}
+            </pre>
+            <CopyButton text={cobranca} />
+          </section>
+        ) : (
+          <p className="warn-sand rise rise-2">
+            Cobrança indisponível — configure os jogos do mês e a tabela de mensalidade em Config.
+          </p>
+        )}
+
+        <section className="rise rise-3">
+          <h2 className="label mb-2 mt-1 px-1">Lançamentos do mês</h2>
+          <EntryList rows={rows} />
         </section>
-      ) : (
-        <p className="rounded-lg bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-800">
-          Cobrança indisponível — configure os jogos do mês e a tabela de mensalidade em /admin/config.
-        </p>
-      )}
-
-      <section>
-        <h2 className="mb-2 text-sm font-bold">Lançamentos do mês</h2>
-        <EntryList rows={rows} />
-      </section>
+      </div>
     </main>
   )
 }

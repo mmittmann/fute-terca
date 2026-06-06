@@ -8,30 +8,52 @@ export default async function CamisasPage() {
   const [shirtList, shirtEntries] = await Promise.all([getShirtsWithPlayers(), getShirtEntries()])
   const arrecadado = sumCents(shirtEntries.filter((e) => e.amountCents > 0))
   const custo = sumCents(shirtEntries.filter((e) => e.amountCents < 0))
+  const saldo = arrecadado + custo
 
   return (
     <main>
-      <header className="bg-green-600 px-4 py-4 text-white">
-        <h1 className="text-lg font-bold">👕 Camisas</h1>
-        <p className="text-xs opacity-90">
-          Arrecadado {formatBRL(arrecadado)} · Custo {formatBRL(custo)} · Saldo {formatBRL(arrecadado + custo)}
-        </p>
+      <header className="page-header rise">
+        <p className="label">O manto sagrado</p>
+        <h1 className="mt-1.5 font-display text-[32px] uppercase leading-none tracking-wide text-ink">Camisas</h1>
       </header>
-      <ul className="m-3 divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white">
+
+      <section className="card mx-3 mt-4 rise rise-1">
+        <div className="grid grid-cols-3 items-center px-2 py-4">
+          <div className="text-center">
+            <div className="font-display text-lg leading-none text-volt">{formatBRL(arrecadado)}</div>
+            <div className="label mt-1.5">Arrecadado</div>
+          </div>
+          <div className="border-x border-line/60 px-1 text-center">
+            <div className="font-display text-lg leading-none text-clay">{formatBRL(custo)}</div>
+            <div className="label mt-1.5">Custo</div>
+          </div>
+          <div className="text-center">
+            <div className={`font-display text-lg leading-none ${saldo >= 0 ? 'text-volt' : 'text-clay'}`}>
+              {formatBRL(saldo)}
+            </div>
+            <div className="label mt-1.5">Saldo</div>
+          </div>
+        </div>
+      </section>
+
+      <ul className="card mx-3 mt-3 divide-y divide-line/40 rise rise-2">
         {shirtList.map((s) => (
-          <li key={s.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
-            <span className="font-semibold">
-              {s.playerName} <span className="ml-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs">{s.size}</span>
-              {s.note && <span className="ml-1 text-xs text-slate-400">{s.note}</span>}
+          <li key={s.id} className="flex items-center gap-3 px-3.5 py-2.5 text-sm">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-line bg-pitch font-display text-xs text-moss">
+              {s.size}
+            </span>
+            <span className="flex-1 truncate">
+              <span className="font-semibold text-ink">{s.playerName}</span>
+              {s.note && <span className="ml-1.5 text-xs text-moss/70">{s.note}</span>}
             </span>
             {s.paidEntryId ? (
-              <span className="font-bold text-green-600">✓ {formatBRL(s.valueCents)}</span>
+              <span className="chip-volt">✓ {formatBRL(s.valueCents)}</span>
             ) : (
-              <span className="font-bold text-red-600">Pendente</span>
+              <span className="chip-clay">Pendente</span>
             )}
           </li>
         ))}
-        {shirtList.length === 0 && <li className="px-4 py-4 text-sm text-slate-500">Nenhum pedido ainda.</li>}
+        {shirtList.length === 0 && <li className="px-4 py-6 text-center text-sm text-moss">Nenhum pedido ainda.</li>}
       </ul>
     </main>
   )

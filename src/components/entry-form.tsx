@@ -48,12 +48,8 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
   }
 
   return (
-    <form
-      ref={formRef}
-      action={(fd) => submit(fd)}
-      className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4"
-    >
-      <h2 className="text-sm font-bold">Novo lançamento — {String(refs.month).padStart(2, '0')}/{refs.year}</h2>
+    <form ref={formRef} action={(fd) => submit(fd)} className="card flex flex-col gap-3.5 p-4">
+      <h2 className="label">Novo lançamento · {String(refs.month).padStart(2, '0')}/{refs.year}</h2>
       <input type="hidden" name="year" value={refs.year} />
       <input type="hidden" name="month" value={refs.month} />
       <input type="hidden" name="type" value={type} />
@@ -64,8 +60,10 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
             key={val}
             type="button"
             onClick={() => pickType(val)}
-            className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-              type === val ? 'border-green-600 bg-green-600 text-white' : 'border-slate-300 bg-white text-slate-600'
+            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+              type === val
+                ? 'border-volt bg-volt text-pitch shadow-[0_0_12px_rgba(198,245,66,0.3)]'
+                : 'border-line bg-transparent text-moss hover:border-moss/60 hover:text-ink'
             }`}
           >
             {label}
@@ -73,9 +71,9 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
         ))}
       </div>
 
-      <label className="text-xs font-bold text-slate-600">
-        Jogador (opcional para quadra/goleiro)
-        <select name="playerId" className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm">
+      <label className="block">
+        <span className="label">Jogador (opcional p/ quadra e goleiro)</span>
+        <select name="playerId" className="input mt-1.5">
           <option value="">—</option>
           {refs.players.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
@@ -84,9 +82,9 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
       </label>
 
       {type === 'evento' && (
-        <label className="text-xs font-bold text-slate-600">
-          Evento
-          <select name="eventId" className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm">
+        <label className="block">
+          <span className="label">Evento</span>
+          <select name="eventId" className="input mt-1.5">
             <option value="">—</option>
             {refs.events.map((ev) => (
               <option key={ev.id} value={ev.id}>{ev.name}</option>
@@ -95,22 +93,22 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
         </label>
       )}
 
-      <label className="text-xs font-bold text-slate-600">
-        Valor (negativo = despesa)
+      <label className="block">
+        <span className="label">Valor (negativo = despesa)</span>
         <input
           name="amount" value={amount} onChange={(e) => setAmount(e.target.value)} required
           inputMode="decimal" placeholder="75,00"
-          className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm"
+          className="input mt-1.5"
         />
       </label>
 
-      <label className="text-xs font-bold text-slate-600">
-        Descrição (opcional)
-        <input name="description" className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" />
+      <label className="block">
+        <span className="label">Descrição (opcional)</span>
+        <input name="description" className="input mt-1.5" />
       </label>
 
       {msg && (
-        <p className={`text-xs font-semibold ${msg.kind === 'ok' ? 'text-green-600' : 'text-red-600'}`}>
+        <p className={`text-xs font-bold ${msg.kind === 'ok' ? 'text-volt' : 'text-clay'}`}>
           {msg.text}
           {msg.kind === 'confirm' && (
             // Nota: o re-submit lê o form no clique do Confirmar; se o admin alterar campos
@@ -118,7 +116,7 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
             <button
               type="button"
               onClick={() => formRef.current && submit(new FormData(formRef.current), true)}
-              className="ml-2 rounded bg-red-600 px-2 py-0.5 text-white"
+              className="ml-2 rounded-lg bg-clay px-2.5 py-1 font-extrabold text-pitch"
             >
               Confirmar
             </button>
@@ -126,7 +124,7 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
         </p>
       )}
 
-      <button disabled={pending} className="rounded-lg bg-green-600 py-2 text-sm font-bold text-white disabled:opacity-50">
+      <button disabled={pending} className="btn-volt">
         Salvar lançamento
       </button>
     </form>

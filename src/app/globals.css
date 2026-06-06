@@ -1,26 +1,157 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  /* "Noite de jogo" — gramado sob refletores */
+  --color-pitch: #0a140e;
+  --color-turf: #101f16;
+  --color-card: #142619;
+  --color-field: #1a3120;
+  --color-line: #2a4a33;
+  --color-ink: #ecf7ee;
+  --color-moss: #93b49e;
+  --color-volt: #c6f542;
+  --color-volt-deep: #9cd428;
+  --color-clay: #ff7a66;
+  --color-sand: #f2c14e;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-display: var(--font-anton);
+  --font-sans: var(--font-archivo);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-pitch);
+  color: var(--color-ink);
+  background-image:
+    radial-gradient(1100px 520px at 50% -260px, rgba(198, 245, 66, 0.12), transparent 70%),
+    radial-gradient(900px 700px at 115% 115%, rgba(20, 70, 40, 0.5), transparent 65%);
+  background-attachment: fixed;
+}
+
+/* grain sutil por cima de tudo */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: rgba(198, 245, 66, 0.3);
+}
+
+/* Cabeçalho de página com o círculo central do campo */
+.page-header {
+  position: relative;
+  overflow: hidden;
+  padding: 26px 16px 16px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.page-header::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translate(-50%, -50%);
+  width: 320px;
+  height: 320px;
+  border: 1.5px solid rgba(198, 245, 66, 0.14);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.page-header::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: rgba(198, 245, 66, 0.35);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line/70 bg-gradient-to-b from-card to-turf;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(236, 247, 238, 0.05);
+  }
+
+  .label {
+    @apply text-[10px] font-bold uppercase tracking-[0.18em] text-moss;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-line bg-pitch/70 px-3 py-2.5 text-sm text-ink placeholder:text-moss/50 outline-none transition focus:border-volt/60 focus:ring-2 focus:ring-volt/20;
+  }
+
+  .btn-volt {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-volt px-4 py-2.5 text-sm font-extrabold text-pitch transition active:translate-y-px disabled:opacity-50;
+    box-shadow: 0 0 22px rgba(198, 245, 66, 0.22);
+  }
+
+  .btn-ghost {
+    @apply rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-moss transition hover:border-moss/60 hover:text-ink;
+  }
+
+  .chip-volt {
+    @apply rounded-full border border-volt/30 bg-volt/10 px-2.5 py-1 text-[11px] font-bold text-volt;
+  }
+
+  .chip-clay {
+    @apply rounded-full border border-clay/30 bg-clay/10 px-2.5 py-1 text-[11px] font-bold text-clay;
+  }
+
+  .chip-sand {
+    @apply rounded-full border border-sand/30 bg-sand/10 px-2.5 py-1 text-[11px] font-bold text-sand;
+  }
+
+  .warn-sand {
+    @apply rounded-xl border border-sand/30 bg-sand/10 px-3.5 py-2.5 text-xs font-semibold text-sand;
+  }
+}
+
+.score-glow {
+  text-shadow: 0 0 28px rgba(198, 245, 66, 0.35);
+}
+
+.score-glow-clay {
+  text-shadow: 0 0 28px rgba(255, 122, 102, 0.35);
+}
+
+/* Entrada orquestrada */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.rise-1 { animation-delay: 0.06s; }
+.rise-2 { animation-delay: 0.12s; }
+.rise-3 { animation-delay: 0.18s; }
+.rise-4 { animation-delay: 0.24s; }
+.rise-5 { animation-delay: 0.3s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .rise-1,
+  .rise-2,
+  .rise-3,
+  .rise-4,
+  .rise-5 {
+    animation: none;
+  }
 }

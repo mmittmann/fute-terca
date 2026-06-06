@@ -22,19 +22,21 @@ export function PlayerForm() {
           }
         })
       }
-      className="flex flex-col gap-2"
+      className="flex flex-col gap-2.5"
     >
-      <div className="flex gap-2">
-        <input name="name" required placeholder="Nome do jogador"
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-        <label className="flex items-center gap-1 text-xs font-semibold">
-          <input type="checkbox" name="isMonthlyActive" value="true" /> Mensalista
+      <div className="flex items-center gap-2">
+        <input name="name" required placeholder="Nome do jogador" className="input flex-1" />
+        <label className="flex shrink-0 items-center gap-1.5 text-xs font-bold text-moss">
+          <input type="checkbox" name="isMonthlyActive" value="true" className="size-4 accent-volt" />
+          Mensalista
         </label>
-        <button disabled={pending} className="rounded-lg bg-green-600 px-4 text-sm font-bold text-white disabled:opacity-50">Add</button>
+        <button disabled={pending} className="btn-volt shrink-0 !px-3.5 !py-2">
+          Add
+        </button>
       </div>
       {msg && (
         <p role="status" aria-live="polite"
-          className={`text-xs font-semibold ${msg.kind === 'ok' ? 'text-green-600' : 'text-red-600'}`}>
+          className={`text-xs font-bold ${msg.kind === 'ok' ? 'text-volt' : 'text-clay'}`}>
           {msg.text}
         </p>
       )}

@@ -15,9 +15,9 @@ export function CopyButton({ text }: { text: string }) {
           alert('Não foi possível copiar — selecione o texto manualmente.')
         }
       }}
-      className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-bold text-white"
+      className="btn-volt w-full"
     >
-      {copied ? 'Copiado ✓' : '📋 Copiar cobrança'}
+      {copied ? 'Copiado ✓' : 'Copiar cobrança'}
     </button>
   )
 }

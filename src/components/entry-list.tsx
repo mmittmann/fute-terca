@@ -14,15 +14,17 @@ export interface EntryRow {
 export function EntryList({ rows }: { rows: EntryRow[] }) {
   const [pending, start] = useTransition()
   return (
-    <ul className="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
+    <ul className="card divide-y divide-line/40">
       {rows.map((r) => (
-        <li key={r.id} className="flex items-center justify-between px-4 py-2 text-sm">
-          <span>
-            <strong>{r.label}</strong>
-            <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] uppercase">{r.type}</span>
+        <li key={r.id} className="flex items-center justify-between gap-2 px-3.5 py-2.5 text-sm">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate font-semibold text-ink">{r.label}</span>
+            <span className="shrink-0 rounded-md border border-line bg-pitch px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-moss">
+              {r.type}
+            </span>
           </span>
-          <span className="flex items-center gap-2">
-            <span className={r.amountCents >= 0 ? 'font-bold text-green-600' : 'font-bold text-red-600'}>
+          <span className="flex shrink-0 items-center gap-2.5">
+            <span className={`font-display text-sm tracking-wide ${r.amountCents >= 0 ? 'text-volt' : 'text-clay'}`}>
               {formatBRL(r.amountCents)}
             </span>
             <button
@@ -34,7 +36,7 @@ export function EntryList({ rows }: { rows: EntryRow[] }) {
                   if (!res.ok) alert(res.error)
                 })
               }}
-              className="text-slate-400 hover:text-red-600"
+              className="text-moss/50 transition hover:text-clay"
               aria-label="Excluir"
             >
               ✕
@@ -42,7 +44,7 @@ export function EntryList({ rows }: { rows: EntryRow[] }) {
           </span>
         </li>
       ))}
-      {rows.length === 0 && <li className="px-4 py-4 text-sm text-slate-500">Nenhum lançamento no mês.</li>}
+      {rows.length === 0 && <li className="px-4 py-5 text-center text-sm text-moss">Nenhum lançamento no mês.</li>}
     </ul>
   )
 }

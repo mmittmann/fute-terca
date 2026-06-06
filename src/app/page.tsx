@@ -42,41 +42,73 @@ export default async function DashboardPage() {
 
   return (
     <main>
-      <header className="bg-green-600 px-4 py-4 text-white">
-        <h1 className="text-lg font-bold">⚽ {settings.group_name ?? 'Controle Futebol'}</h1>
-        <p className="text-xs opacity-90">
+      <header className="page-header rise">
+        <p className="label">{settings.group_name ?? 'Controle Futebol'}</p>
+        <h1 className="mt-1.5 font-display text-[32px] uppercase leading-none tracking-wide text-ink">
           {monthLabel(year, month)}
-          {monthRow && ` · ${monthRow.gamesCount} jogos`}
-          {fee !== null && ` · mensalidade ${formatBRL(fee)}`}
+        </h1>
+        <p className="mt-2 text-xs text-moss">
+          {monthRow ? `${monthRow.gamesCount} jogos no mês` : 'mês ainda sem configuração'}
+          {fee !== null && (
+            <>
+              {' · mensalidade '}
+              <span className="font-bold text-ink">{formatBRL(fee)}</span>
+            </>
+          )}
         </p>
       </header>
 
-      <section className="flex gap-2 px-3 py-3">
-        <Card value={formatBRL(cash)} label="CAIXA" />
-        <Card value={`${status.paid.length}/${active.length}`} label="PAGOS" />
-        <Card value={monthRow ? String(monthRow.gamesCount) : '—'} label="JOGOS" />
+      {/* Placar */}
+      <section className="card mx-3 mt-4 rise rise-1">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 px-3 py-5">
+          <div className="text-center">
+            <div className="font-display text-[26px] leading-none text-ink">
+              {status.paid.length}
+              <span className="text-moss/60">/{active.length}</span>
+            </div>
+            <div className="label mt-2">Pagos</div>
+          </div>
+          <div className="border-x border-line/60 px-5 text-center">
+            <div
+              className={`font-display text-[30px] leading-none whitespace-nowrap ${
+                cash >= 0 ? 'score-glow text-volt' : 'score-glow-clay text-clay'
+              }`}
+            >
+              {formatBRL(cash)}
+            </div>
+            <div className="label mt-2">Caixa</div>
+          </div>
+          <div className="text-center">
+            <div className="font-display text-[26px] leading-none text-ink">
+              {monthRow ? monthRow.gamesCount : '—'}
+            </div>
+            <div className="label mt-2">Jogos</div>
+          </div>
+        </div>
       </section>
 
       {collection && (
-        <section className="mx-3 rounded-xl border border-slate-200 bg-white p-3 text-sm">
-          <strong>Arrecadação do mês</strong> — {formatBRL(collection.collectedCents)} de{' '}
-          {formatBRL(collection.expectedCents)}
-          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-200">
-            <div className="h-full bg-green-600" style={{ width: `${pct}%` }} />
+        <section className="card mx-3 mt-3 rise rise-2 p-4">
+          <div className="flex items-baseline justify-between">
+            <span className="label">Arrecadação do mês</span>
+            <span className="text-xs text-moss">
+              <span className="font-bold text-ink">{formatBRL(collection.collectedCents)}</span>
+              {' de '}
+              {formatBRL(collection.expectedCents)}
+            </span>
+          </div>
+          <div className="mt-3 h-2.5 overflow-hidden rounded-full border border-line/50 bg-pitch/80">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-volt-deep to-volt shadow-[0_0_12px_rgba(198,245,66,0.5)] transition-[width] duration-700"
+              style={{ width: `${pct}%` }}
+            />
           </div>
         </section>
       )}
 
-      <PaymentList rows={rows} />
+      <div className="rise rise-3">
+        <PaymentList rows={rows} />
+      </div>
     </main>
-  )
-}
-
-function Card({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="flex-1 rounded-xl border border-slate-200 bg-white p-3 text-center">
-      <div className="text-base font-extrabold">{value}</div>
-      <div className="mt-0.5 text-[10px] font-bold text-slate-500">{label}</div>
-    </div>
   )
 }

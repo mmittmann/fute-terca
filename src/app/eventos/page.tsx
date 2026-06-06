@@ -10,40 +10,56 @@ export default async function EventosPage() {
 
   return (
     <main>
-      <header className="bg-green-600 px-4 py-4 text-white">
-        <h1 className="text-lg font-bold">🍖 Eventos</h1>
+      <header className="page-header rise">
+        <p className="label">Resenha fora de campo</p>
+        <h1 className="mt-1.5 font-display text-[32px] uppercase leading-none tracking-wide text-ink">Eventos</h1>
       </header>
-      <div className="flex flex-col gap-3 p-3">
-        {events.length === 0 && <p className="p-4 text-sm text-slate-500">Nenhum evento ainda.</p>}
-        {events.map((ev) => {
+      <div className="flex flex-col gap-3 p-3 pt-4">
+        {events.length === 0 && (
+          <p className="card px-4 py-6 text-center text-sm text-moss rise rise-1">Nenhum evento ainda.</p>
+        )}
+        {events.map((ev, i) => {
           const evEntries = entries.filter((e) => e.eventId === ev.id)
           const saldo = sumCents(evEntries)
           const gastos = evEntries.filter((e) => e.amountCents < 0)
           const contribs = evEntries.filter((e) => e.amountCents > 0)
           return (
-            <details key={ev.id} className="rounded-xl border border-slate-200 bg-white">
-              <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-semibold">
-                <span>{ev.name}</span>
-                <span className={saldo >= 0 ? 'text-green-600' : 'text-red-600'}>{formatBRL(saldo)}</span>
+            <details key={ev.id} className={`card group rise rise-${Math.min(i + 1, 5)}`}>
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 [&::-webkit-details-marker]:hidden">
+                <span className="flex items-center gap-2.5 text-sm font-semibold text-ink">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="size-3.5 shrink-0 text-moss transition-transform group-open:rotate-180"
+                  >
+                    <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {ev.name}
+                </span>
+                <span className={saldo >= 0 ? 'chip-volt' : 'chip-clay'}>{formatBRL(saldo)}</span>
               </summary>
-              <div className="grid grid-cols-2 gap-2 border-t border-slate-100 p-3 text-xs">
+              <div className="grid grid-cols-2 gap-4 border-t border-line/40 p-4 text-xs">
                 <div>
-                  <p className="mb-1 font-bold text-red-600">Gastos</p>
+                  <p className="label mb-2 !text-clay">Gastos</p>
                   {gastos.map((e) => (
-                    <p key={e.id} className="flex justify-between py-0.5">
-                      <span>{e.description ?? (e.playerId ? nameById.get(e.playerId) : 'Gasto')}</span>
-                      <span>{formatBRL(e.amountCents)}</span>
+                    <p key={e.id} className="flex justify-between gap-2 py-1 text-moss">
+                      <span className="truncate">{e.description ?? (e.playerId ? nameById.get(e.playerId) : 'Gasto')}</span>
+                      <span className="shrink-0 font-semibold text-ink">{formatBRL(e.amountCents)}</span>
                     </p>
                   ))}
+                  {gastos.length === 0 && <p className="py-1 text-moss/50">—</p>}
                 </div>
                 <div>
-                  <p className="mb-1 font-bold text-green-600">Contribuições</p>
+                  <p className="label mb-2 !text-volt">Contribuições</p>
                   {contribs.map((e) => (
-                    <p key={e.id} className="flex justify-between py-0.5">
-                      <span>{e.playerId ? nameById.get(e.playerId) : (e.description ?? '?')}</span>
-                      <span>{formatBRL(e.amountCents)}</span>
+                    <p key={e.id} className="flex justify-between gap-2 py-1 text-moss">
+                      <span className="truncate">{e.playerId ? nameById.get(e.playerId) : (e.description ?? '?')}</span>
+                      <span className="shrink-0 font-semibold text-ink">{formatBRL(e.amountCents)}</span>
                     </p>
                   ))}
+                  {contribs.length === 0 && <p className="py-1 text-moss/50">—</p>}
                 </div>
               </div>
             </details>
