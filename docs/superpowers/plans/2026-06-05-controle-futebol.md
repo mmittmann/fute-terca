@@ -178,15 +178,17 @@ export const appSettings = pgTable('app_settings', {
 
 - [ ] **Step 2: Client e config**
 
-Create `src/db/client.ts`:
+Create `src/db/client.ts` (driver `pg` — funciona com o Postgres local em Docker e com qualquer Postgres em produção):
 
 ```ts
-import { neon } from '@neondatabase/serverless'
-import { drizzle } from 'drizzle-orm/neon-http'
+import { drizzle } from 'drizzle-orm/node-postgres'
+import { Pool } from 'pg'
 import * as schema from './schema'
 
-export const db = drizzle(neon(process.env.DATABASE_URL!), { schema })
+export const db = drizzle(new Pool({ connectionString: process.env.DATABASE_URL! }), { schema })
 ```
+
+Dependências adicionais: `npm i pg` e `npm i -D @types/pg` (decisão tomada quando o banco passou a ser Docker local em vez de Neon).
 
 Create `drizzle.config.ts`:
 
