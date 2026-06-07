@@ -9,6 +9,7 @@ import { buildCobrancaMessage } from '@/lib/cobranca'
 import { currentYearMonth, monthLabel } from '@/lib/dates'
 import { monthlyFeeCents } from '@/lib/fees'
 import { computeMonthStatus } from '@/lib/status'
+import { tuesdaysInMonth } from '@/lib/tuesdays'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +24,9 @@ export default async function AdminPage() {
     getMonthEntries(year, month), getFeeTable(), getAllYearSettings(),
   ])
 
-  const fee = monthRow ? monthlyFeeCents(feeTable, year, monthRow.gamesCount) : null
+  // nº de jogos = terças do mês (override manual em Config quando existir)
+  const gamesCount = monthRow?.gamesCount ?? tuesdaysInMonth(year, month).length
+  const fee = monthlyFeeCents(feeTable, year, gamesCount)
   const yearCfg = yearsCfg.find((y) => y.year === year)
   const status = computeMonthStatus(active, monthEntries)
   const nameById = new Map(allPlayers.map((p) => [p.id, p.name]))
@@ -59,9 +62,9 @@ export default async function AdminPage() {
       </header>
 
       <div className="flex flex-col gap-3 p-3 pt-4">
-        {!monthRow && (
+        {fee === null && (
           <p className="warn-sand rise">
-            Mês sem nº de jogos definido — configure em Config para calcular a mensalidade.
+            Sem mensalidade cadastrada para {gamesCount} jogos em {year} — cadastre em Config → Mensalidade por nº de jogos.
           </p>
         )}
 

@@ -8,6 +8,7 @@ import {
 } from '@/db/queries'
 import { currentYearMonth } from '@/lib/dates'
 import { formatBRL } from '@/lib/money'
+import { tuesdaysInMonth } from '@/lib/tuesdays'
 import { ShirtPayButton } from '@/components/shirt-pay-button'
 
 export const dynamic = 'force-dynamic'
@@ -48,13 +49,17 @@ export default async function ConfigPage() {
 
         <section className="card rise rise-2 p-4">
           <h2 className="label mb-3">Jogos do mês atual · {String(month).padStart(2, '0')}/{year}</h2>
+          <p className="mb-3 text-xs text-moss">
+            Calculado pelo calendário: <span className="font-bold text-volt">{tuesdaysInMonth(year, month).length} terças</span>.
+            Salve um valor abaixo apenas em mês atípico (feriado, quadra fechada).
+          </p>
           <form action={async (fd) => { 'use server'; await upsertMonth(fd) }} className="flex gap-2">
             <input type="hidden" name="year" value={year} />
             <input type="hidden" name="month" value={month} />
             <input name="gamesCount" type="number" min={1} max={6}
-              defaultValue={monthsList.find((m) => m.year === year && m.month === month)?.gamesCount ?? 4}
+              defaultValue={monthsList.find((m) => m.year === year && m.month === month)?.gamesCount ?? tuesdaysInMonth(year, month).length}
               className="input w-24" />
-            <button className={btnCls}>Salvar</button>
+            <button className={btnCls}>Salvar override</button>
           </form>
         </section>
 

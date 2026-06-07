@@ -44,8 +44,19 @@ function ChartIcon() {
   )
 }
 
+function CalendarIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-[22px]">
+      <rect x="4" y="5.5" width="16" height="15" rx="2.5" />
+      <path d="M4 10.5h16M8.5 3.5v4M15.5 3.5v4" strokeLinecap="round" />
+      <circle cx="12" cy="15.5" r="1.6" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
 const items = [
   { href: '/', label: 'Mensal', Icon: BallIcon },
+  { href: '/jogos', label: 'Jogos', Icon: CalendarIcon },
   { href: '/eventos', label: 'Eventos', Icon: FlameIcon },
   { href: '/camisas', label: 'Camisas', Icon: ShirtIcon },
   { href: '/historico', label: 'Histórico', Icon: ChartIcon },

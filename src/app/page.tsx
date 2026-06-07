@@ -7,6 +7,7 @@ import { currentYearMonth, monthLabel } from '@/lib/dates'
 import { monthlyFeeCents } from '@/lib/fees'
 import { formatBRL } from '@/lib/money'
 import { computeMonthStatus } from '@/lib/status'
+import { tuesdaysInMonth } from '@/lib/tuesdays'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +18,9 @@ export default async function DashboardPage() {
     getMonthEntries(year, month), getFeeTable(), getAllEntries(),
   ])
 
-  const fee = monthRow ? monthlyFeeCents(feeTable, year, monthRow.gamesCount) : null
+  // nº de jogos = terças do mês (override manual em /admin/config quando existir)
+  const gamesCount = monthRow?.gamesCount ?? tuesdaysInMonth(year, month).length
+  const fee = monthlyFeeCents(feeTable, year, gamesCount)
   const status = computeMonthStatus(active, monthEntries)
   const cash = sumCents(allEntries)
   const collection = fee ? monthCollection(active.length, fee, monthEntries) : null
@@ -48,7 +51,7 @@ export default async function DashboardPage() {
           {monthLabel(year, month)}
         </h1>
         <p className="mt-2 text-xs text-moss">
-          {monthRow ? `${monthRow.gamesCount} jogos no mês` : 'mês ainda sem configuração'}
+          {`${gamesCount} jogos no mês (terças)`}
           {fee !== null && (
             <>
               {' · mensalidade '}
@@ -79,9 +82,7 @@ export default async function DashboardPage() {
             <div className="label mt-2">Caixa</div>
           </div>
           <div className="text-center">
-            <div className="font-display text-[26px] leading-none text-ink">
-              {monthRow ? monthRow.gamesCount : '—'}
-            </div>
+            <div className="font-display text-[26px] leading-none text-ink">{gamesCount}</div>
             <div className="label mt-2">Jogos</div>
           </div>
         </div>
