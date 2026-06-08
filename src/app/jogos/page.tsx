@@ -37,12 +37,12 @@ export default async function JogosPage({
 
   const tuesdays = tuesdaysInMonth(year, month)
   const mensalistas = entries
-    .filter((e) => e.type === 'mensal' && e.playerId)
+    .filter((e) => e.type === 'mensal' && e.amountCents > 0 && e.playerId)
     .map((e) => nameById.get(e.playerId!) ?? '?')
     .sort((a, b) => a.localeCompare(b, 'pt-BR'))
 
   const avulsos: AvulsoRef[] = entries
-    .filter((e) => e.type === 'avulso')
+    .filter((e) => e.type === 'avulso' && e.amountCents > 0)
     .map((e) => {
       const created = spDate.format(e.createdAt) // YYYY-MM-DD
       const sameMonth = created.startsWith(`${year}-${String(month).padStart(2, '0')}`)

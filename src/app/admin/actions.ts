@@ -8,6 +8,7 @@ import {
   appSettings, entries, events, monthlyFeeTable, months, players, shirts, yearSettings,
 } from '@/db/schema'
 import { parseToCents } from '@/lib/money'
+import { signError } from '@/lib/entry-sign'
 import { requireAdmin } from '@/auth/require-admin'
 
 export type ActionResult = { ok: true } | { ok: false; error: string; needsConfirm?: boolean }
@@ -35,6 +36,9 @@ export async function createEntry(formData: FormData): Promise<ActionResult> {
 
   const amountCents = parseToCents(d.amount)
   if (amountCents === null || amountCents === 0) return { ok: false, error: 'Valor inválido' }
+
+  const sErr = signError(d.type, amountCents)
+  if (sErr) return { ok: false, error: sErr }
 
   if (d.type === 'mensal' && d.playerId && !d.confirmed) {
     const dup = await db

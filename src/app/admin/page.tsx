@@ -66,7 +66,7 @@ export default async function AdminPage() {
   const gameYearCfg = yearsCfg.find((y) => y.year === game.year)
   const paidMensalNames = [...gameEntries]
     .reverse() // getMonthEntries vem desc(createdAt); reverte p/ cronológico
-    .filter((e) => e.type === 'mensal' && e.playerId)
+    .filter((e) => e.type === 'mensal' && e.amountCents > 0 && e.playerId)
     .map((e) => nameById.get(e.playerId!) ?? '?')
   const gameMessage = buildGameListMessage({
     dateLabel: game.label,
