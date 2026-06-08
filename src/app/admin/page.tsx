@@ -28,6 +28,12 @@ export default async function AdminPage() {
   const gamesCount = monthRow?.gamesCount ?? tuesdaysInMonth(year, month).length
   const fee = monthlyFeeCents(feeTable, year, gamesCount)
   const yearCfg = yearsCfg.find((y) => y.year === year)
+  const guessConfig = {
+    monthlyFeeCents: feeTable.filter((f) => f.year === year).map((f) => f.feeCents),
+    avulsoFeeCents: yearCfg?.avulsoFeeCents ?? 0,
+    courtFeePerGameCents: yearCfg?.courtFeePerGameCents ?? 0,
+    goalkeeperFeePerGameCents: yearCfg?.goalkeeperFeePerGameCents ?? 0,
+  }
   const status = computeMonthStatus(active, monthEntries)
   const nameById = new Map(allPlayers.map((p) => [p.id, p.name]))
 
@@ -76,6 +82,7 @@ export default async function AdminPage() {
               year, month,
               defaultFee: centsToInput(fee),
               defaultAvulso: centsToInput(yearCfg?.avulsoFeeCents ?? null),
+              guessConfig,
             }}
           />
         </div>
