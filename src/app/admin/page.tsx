@@ -1,14 +1,13 @@
 import Link from 'next/link'
 import { EntryForm } from '@/components/entry-form'
 import { EntryList, type EntryRow } from '@/components/entry-list'
-import { CopyButton } from '@/components/copy-button'
 import {
-  getActivePlayers, getAllPlayers, getEvents, getFeeTable, getMonth, getMonthEntries, getSettingsMap, getAllYearSettings,
+  getAllPlayers, getEvents, getFeeTable, getMonth, getMonthEntries, getAllYearSettings,
 } from '@/db/queries'
-import { buildCobrancaMessage } from '@/lib/cobranca'
 import { currentYearMonth, monthLabel } from '@/lib/dates'
 import { monthlyFeeCents } from '@/lib/fees'
-import { computeMonthStatus } from '@/lib/status'
+import { monthSummary } from '@/lib/month-summary'
+import { formatBRL } from '@/lib/money'
 import { tuesdaysInMonth } from '@/lib/tuesdays'
 
 export const dynamic = 'force-dynamic'
@@ -19,22 +18,21 @@ function centsToInput(cents: number | null): string {
 
 export default async function AdminPage() {
   const { year, month } = currentYearMonth()
-  const [settings, active, allPlayers, eventsList, monthRow, monthEntries, feeTable, yearsCfg] = await Promise.all([
-    getSettingsMap(), getActivePlayers(), getAllPlayers(), getEvents(), getMonth(year, month),
-    getMonthEntries(year, month), getFeeTable(), getAllYearSettings(),
+  const [allPlayers, eventsList, monthRow, monthEntries, feeTable, yearsCfg] = await Promise.all([
+    getAllPlayers(), getEvents(), getMonth(year, month), getMonthEntries(year, month), getFeeTable(), getAllYearSettings(),
   ])
 
   // nº de jogos = terças do mês (override manual em Config quando existir)
   const gamesCount = monthRow?.gamesCount ?? tuesdaysInMonth(year, month).length
   const fee = monthlyFeeCents(feeTable, year, gamesCount)
   const yearCfg = yearsCfg.find((y) => y.year === year)
+  const summary = monthSummary(monthEntries)
   const guessConfig = {
     monthlyFeeCents: feeTable.filter((f) => f.year === year).map((f) => f.feeCents),
     avulsoFeeCents: yearCfg?.avulsoFeeCents ?? 0,
     courtFeePerGameCents: yearCfg?.courtFeePerGameCents ?? 0,
     goalkeeperFeePerGameCents: yearCfg?.goalkeeperFeePerGameCents ?? 0,
   }
-  const status = computeMonthStatus(active, monthEntries)
   const nameById = new Map(allPlayers.map((p) => [p.id, p.name]))
 
   const rows: EntryRow[] = monthEntries.map((e) => ({
@@ -43,13 +41,6 @@ export default async function AdminPage() {
     type: e.type,
     amountCents: e.amountCents,
   }))
-
-  const cobranca = fee !== null ? buildCobrancaMessage({
-    monthLabel: monthLabel(year, month),
-    feeCents: fee,
-    pendingNames: status.pending.map((p) => p.name),
-    pixKey: settings.pix_key ?? '(configure a chave PIX em /admin/config)',
-  }) : ''
 
   return (
     <main>
@@ -65,12 +56,16 @@ export default async function AdminPage() {
             <Link href="/" className="btn-ghost">Sair</Link>
           </nav>
         </div>
+        <p className="mt-2 text-xs text-moss">
+          Saldo do mês <span className={`font-bold ${summary.saldoCents >= 0 ? 'text-volt' : 'text-clay'}`}>{formatBRL(summary.saldoCents)}</span>
+          {' · '}{summary.pagamentos} pagamentos
+        </p>
       </header>
 
       <div className="flex flex-col gap-3 p-3 pt-4">
         {fee === null && (
           <p className="warn-sand rise">
-            Sem mensalidade cadastrada para {gamesCount} jogos em {year} — cadastre em Config → Mensalidade por nº de jogos.
+            Sem mensalidade cadastrada para {gamesCount} jogos em {year} — cadastre em Config → Mensalidade por nº de jogos (opcional; usado só para sugerir o valor).
           </p>
         )}
 
@@ -87,24 +82,7 @@ export default async function AdminPage() {
           />
         </div>
 
-        {fee !== null ? (
-          <section className="card rise rise-2 p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="label">Cobrança</h2>
-              <span className="chip-clay">{status.pending.length} pendentes</span>
-            </div>
-            <pre className="mb-3 whitespace-pre-wrap rounded-xl border border-line/50 bg-pitch/80 p-3.5 font-sans text-xs leading-relaxed text-moss">
-              {cobranca}
-            </pre>
-            <CopyButton text={cobranca} />
-          </section>
-        ) : (
-          <p className="warn-sand rise rise-2">
-            Cobrança indisponível — configure os jogos do mês e a tabela de mensalidade em Config.
-          </p>
-        )}
-
-        <section className="rise rise-3">
+        <section className="rise rise-2">
           <h2 className="label mb-2 mt-1 px-1">Lançamentos do mês</h2>
           <EntryList rows={rows} />
         </section>

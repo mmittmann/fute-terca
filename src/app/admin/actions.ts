@@ -70,7 +70,6 @@ export async function deleteEntry(id: number): Promise<ActionResult> {
 
 const playerSchema = z.object({
   name: z.string().trim().min(1).max(60),
-  isMonthlyActive: z.literal('true').transform(() => true).optional(),
 })
 
 export async function createPlayer(formData: FormData): Promise<ActionResult> {
@@ -79,17 +78,10 @@ export async function createPlayer(formData: FormData): Promise<ActionResult> {
   if (!parsed.success) return { ok: false, error: 'Nome inválido' }
   const rows = await db
     .insert(players)
-    .values({ name: parsed.data.name, isMonthlyActive: parsed.data.isMonthlyActive ?? false })
+    .values({ name: parsed.data.name })
     .onConflictDoNothing()
     .returning({ id: players.id })
   if (rows.length === 0) return { ok: false, error: 'Jogador já existe' }
-  revalidateAll()
-  return { ok: true }
-}
-
-export async function togglePlayerActive(id: number, active: boolean): Promise<ActionResult> {
-  await requireAdmin()
-  await db.update(players).set({ isMonthlyActive: active }).where(eq(players.id, id))
   revalidateAll()
   return { ok: true }
 }

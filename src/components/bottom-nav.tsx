@@ -54,7 +54,17 @@ function CalendarIcon() {
   )
 }
 
-const items = [
+function AdminIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-[22px]">
+      <rect x="5" y="10.5" width="14" height="9.5" rx="2" />
+      <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" strokeLinecap="round" />
+      <circle cx="12" cy="15" r="1.4" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+const baseItems = [
   { href: '/', label: 'Mensal', Icon: BallIcon },
   { href: '/jogos', label: 'Jogos', Icon: CalendarIcon },
   { href: '/eventos', label: 'Eventos', Icon: FlameIcon },
@@ -62,8 +72,11 @@ const items = [
   { href: '/historico', label: 'Histórico', Icon: ChartIcon },
 ]
 
-export function BottomNav() {
+const adminItem = { href: '/admin', label: 'Admin', Icon: AdminIcon }
+
+export function BottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname()
+  const items = isAdmin ? [...baseItems, adminItem] : baseItems
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-md border-t border-line bg-pitch/85 backdrop-blur-md">
       {items.map(({ href, label, Icon }) => {

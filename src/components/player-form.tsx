@@ -15,7 +15,7 @@ export function PlayerForm() {
         start(async () => {
           const r = await createPlayer(fd)
           if (r.ok) {
-            setMsg({ kind: 'ok', text: 'Jogador criado ✓' })
+            setMsg({ kind: 'ok', text: 'Jogador cadastrado ✓' })
             formRef.current?.reset()
           } else {
             setMsg({ kind: 'err', text: r.error })
@@ -26,12 +26,8 @@ export function PlayerForm() {
     >
       <div className="flex items-center gap-2">
         <input name="name" required placeholder="Nome do jogador" className="input flex-1" />
-        <label className="flex shrink-0 items-center gap-1.5 text-xs font-bold text-moss">
-          <input type="checkbox" name="isMonthlyActive" value="true" className="size-4 accent-volt" />
-          Mensalista
-        </label>
-        <button disabled={pending} className="btn-volt shrink-0 !px-3.5 !py-2">
-          Add
+        <button disabled={pending} className="btn-volt shrink-0 !px-4 !py-2">
+          Cadastrar
         </button>
       </div>
       {msg && (

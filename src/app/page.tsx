@@ -1,47 +1,32 @@
-import { PaymentList, type PaymentRow } from '@/components/payment-list'
-import {
-  getActivePlayers, getAllEntries, getAllPlayers, getFeeTable, getMonth, getMonthEntries, getSettingsMap,
-} from '@/db/queries'
-import { sumCents, monthCollection } from '@/lib/balance'
+import { MonthLedger, type LedgerRow } from '@/components/month-ledger'
+import { getAllPlayers, getFeeTable, getMonth, getMonthEntries, getSettingsMap } from '@/db/queries'
 import { currentYearMonth, monthLabel } from '@/lib/dates'
 import { monthlyFeeCents } from '@/lib/fees'
 import { formatBRL } from '@/lib/money'
-import { computeMonthStatus } from '@/lib/status'
+import { monthSummary } from '@/lib/month-summary'
 import { tuesdaysInMonth } from '@/lib/tuesdays'
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
   const { year, month } = currentYearMonth()
-  const [settings, active, allPlayers, monthRow, monthEntries, feeTable, allEntries] = await Promise.all([
-    getSettingsMap(), getActivePlayers(), getAllPlayers(), getMonth(year, month),
-    getMonthEntries(year, month), getFeeTable(), getAllEntries(),
+  const [settings, allPlayers, monthRow, monthEntries, feeTable] = await Promise.all([
+    getSettingsMap(), getAllPlayers(), getMonth(year, month), getMonthEntries(year, month), getFeeTable(),
   ])
 
   // nº de jogos = terças do mês (override manual em /admin/config quando existir)
   const gamesCount = monthRow?.gamesCount ?? tuesdaysInMonth(year, month).length
   const fee = monthlyFeeCents(feeTable, year, gamesCount)
-  const status = computeMonthStatus(active, monthEntries)
-  const cash = sumCents(allEntries)
-  const collection = fee ? monthCollection(active.length, fee, monthEntries) : null
+
+  const summary = monthSummary(monthEntries)
   const nameById = new Map(allPlayers.map((p) => [p.id, p.name]))
 
-  const rows: PaymentRow[] = [
-    ...status.pending.map((p) => ({ id: `p-${p.id}`, name: p.name, status: 'pendente' as const })),
-    ...status.paid.map((p) => ({ id: `p-${p.id}`, name: p.name, status: 'pago' as const })),
-    ...monthEntries
-      .filter((e) => e.type === 'avulso')
-      .map((e) => ({
-        id: `e-${e.id}`,
-        name: e.playerId ? (nameById.get(e.playerId) ?? '?') : (e.description ?? '?'),
-        status: 'avulso' as const,
-        amountCents: e.amountCents,
-      })),
-  ]
-
-  const pct = collection && collection.expectedCents > 0
-    ? Math.min(100, Math.round((collection.collectedCents / collection.expectedCents) * 100))
-    : 0
+  const rows: LedgerRow[] = monthEntries.map((e) => ({
+    id: e.id,
+    name: e.playerId ? (nameById.get(e.playerId) ?? '?') : (e.description ?? e.type),
+    type: e.type,
+    amountCents: e.amountCents,
+  }))
 
   return (
     <main>
@@ -61,54 +46,45 @@ export default async function DashboardPage() {
         </p>
       </header>
 
-      {/* Placar */}
+      {/* Placar do mês */}
       <section className="card mx-3 mt-4 rise rise-1">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 px-3 py-5">
           <div className="text-center">
-            <div className="font-display text-[26px] leading-none text-ink">
-              {status.paid.length}
-              <span className="text-moss/60">/{active.length}</span>
-            </div>
-            <div className="label mt-2">Pagos</div>
+            <div className="font-display text-[26px] leading-none text-ink">{summary.pagamentos}</div>
+            <div className="label mt-2">Pagaram</div>
           </div>
           <div className="border-x border-line/60 px-5 text-center">
             <div
               className={`font-display text-[30px] leading-none whitespace-nowrap ${
-                cash >= 0 ? 'score-glow text-volt' : 'score-glow-clay text-clay'
+                summary.saldoCents >= 0 ? 'score-glow text-volt' : 'score-glow-clay text-clay'
               }`}
             >
-              {formatBRL(cash)}
+              {formatBRL(summary.saldoCents)}
             </div>
-            <div className="label mt-2">Caixa</div>
+            <div className="label mt-2">Saldo do mês</div>
           </div>
           <div className="text-center">
             <div className="font-display text-[26px] leading-none text-ink">{gamesCount}</div>
             <div className="label mt-2">Jogos</div>
           </div>
         </div>
+        <div className="flex items-center justify-center gap-4 border-t border-line/50 py-2.5 text-[11px]">
+          <span className="text-moss">
+            Entradas <span className="font-bold text-volt">{formatBRL(summary.entradasCents)}</span>
+          </span>
+          <span className="text-line">·</span>
+          <span className="text-moss">
+            Saídas <span className="font-bold text-clay">{formatBRL(summary.saidasCents)}</span>
+          </span>
+        </div>
       </section>
 
-      {collection && (
-        <section className="card mx-3 mt-3 rise rise-2 p-4">
-          <div className="flex items-baseline justify-between">
-            <span className="label">Arrecadação do mês</span>
-            <span className="text-xs text-moss">
-              <span className="font-bold text-ink">{formatBRL(collection.collectedCents)}</span>
-              {' de '}
-              {formatBRL(collection.expectedCents)}
-            </span>
-          </div>
-          <div className="mt-3 h-2.5 overflow-hidden rounded-full border border-line/50 bg-pitch/80">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-volt-deep to-volt shadow-[0_0_12px_rgba(198,245,66,0.5)] transition-[width] duration-700"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-        </section>
-      )}
+      <p className="mx-4 mt-3 text-[11px] leading-relaxed text-moss/70 rise rise-2">
+        O mês começa zerado. Lance a quadra e vá adicionando quem pagar — o saldo sobe a cada pagamento.
+      </p>
 
-      <div className="rise rise-3">
-        <PaymentList rows={rows} />
+      <div className="rise rise-2">
+        <MonthLedger rows={rows} />
       </div>
     </main>
   )

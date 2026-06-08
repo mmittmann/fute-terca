@@ -13,10 +13,6 @@ export function getAllPlayers() {
   return db.select().from(players).orderBy(asc(players.name))
 }
 
-export function getActivePlayers() {
-  return db.select().from(players).where(eq(players.isMonthlyActive, true)).orderBy(asc(players.name))
-}
-
 export async function getMonth(year: number, month: number) {
   const rows = await db
     .select()
