@@ -42,3 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# dump do banco (dados da pelada — não versionar)
+db-dump.sql
