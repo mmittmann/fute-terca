@@ -9,6 +9,7 @@ import {
 import { currentYearMonth, monthLabel } from '@/lib/dates'
 import { monthlyFeeCents } from '@/lib/fees'
 import { buildGameListMessage } from '@/lib/game-list'
+import { defaultGameValue, tuesdayOptions } from '@/lib/game-options'
 import { monthSummary } from '@/lib/month-summary'
 import { formatBRL } from '@/lib/money'
 import { tuesdaysInMonth } from '@/lib/tuesdays'
@@ -36,6 +37,15 @@ function nextTuesdaySP(): { label: string; year: number; month: number } {
 export default async function AdminPage() {
   const { year, month } = currentYearMonth()
   const game = nextTuesdaySP()
+
+  // Opções do campo "Jogo": terças do mês + default na terça mais próxima de hoje (SP).
+  const spYmd = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date())
+  const [spY, spM, spD] = spYmd.split('-').map(Number)
+  const todayDay = spY === year && spM === month ? spD : null
+  const gameOptions = tuesdayOptions(year, month)
+  const defaultGame = defaultGameValue(year, month, todayDay)
   const [settings, allPlayers, eventsList, monthRow, monthEntries, gameEntries, feeTable, yearsCfg] = await Promise.all([
     getSettingsMap(), getAllPlayers(), getEvents(), getMonth(year, month),
     getMonthEntries(year, month), getMonthEntries(game.year, game.month), getFeeTable(), getAllYearSettings(),
@@ -59,6 +69,7 @@ export default async function AdminPage() {
     label: e.playerId ? (nameById.get(e.playerId) ?? '?') : (e.description ?? e.type),
     type: e.type,
     amountCents: e.amountCents,
+    gameDate: e.gameDate,
   }))
 
   // Lista do jogo (próxima terça): mensalistas pagos no mês do jogo, em ordem cronológica
@@ -127,6 +138,8 @@ export default async function AdminPage() {
               defaultFee: centsToInput(fee),
               defaultAvulso: centsToInput(yearCfg?.avulsoFeeCents ?? null),
               guessConfig,
+              gameOptions,
+              defaultGame,
             }}
           />
         </div>
