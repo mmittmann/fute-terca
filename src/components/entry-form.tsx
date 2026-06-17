@@ -1,8 +1,9 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
-import { createEntry, type ActionResult } from '@/app/admin/actions'
-import { PlayerCombobox } from '@/components/player-combobox'
+import { createEntry, createPlayer, type ActionResult } from '@/app/admin/actions'
+import { PlayerCombobox, type PlayerOption } from '@/components/player-combobox'
+import { categoryAfterSignChange, signForType, type Sign } from '@/lib/entry-sign'
 import { guessEntryType, type GuessConfig } from '@/lib/guess-type'
 import { parseToCents } from '@/lib/money'
 
@@ -16,31 +17,36 @@ export interface FormRefs {
   events: { id: number; name: string }[]
   year: number
   month: number
-  defaultFee: string // ex: "75,00" — pré-preenche no tipo mensal
+  defaultFee: string // ex: "75,00" — pré-preenche no tipo mensal (só se vazio)
   defaultAvulso: string
   guessConfig: GuessConfig
+  gameOptions: { value: string; label: string }[]
+  defaultGame: string // value 'YYYY-MM-DD' da terça default
 }
 
 export function EntryForm({ refs }: { refs: FormRefs }) {
   const formRef = useRef<HTMLFormElement>(null)
+  const [sign, setSign] = useState<Sign>('receita')
   const [type, setType] = useState<string>('mensal')
   const [amount, setAmount] = useState(refs.defaultFee)
   const [playerId, setPlayerId] = useState<number | null>(null)
+  const [gameDate, setGameDate] = useState(refs.defaultGame)
+  const [players, setPlayers] = useState<PlayerOption[]>(refs.players)
   const [autoType, setAutoType] = useState(false) // tipo veio do valor digitado
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err' | 'confirm'; text: string } | null>(null)
   const [pending, start] = useTransition()
 
-  function pickType(t: string) {
-    setType(t)
-    setAutoType(false)
-    if (t === 'mensal') setAmount(refs.defaultFee)
-    else if (t === 'avulso') setAmount(refs.defaultAvulso)
-    else setAmount('')
+  // valor com sinal (despesa = negativo) p/ detecção e envio
+  function signedCents(magnitude: string, s: Sign): number | null {
+    const cents = parseToCents(magnitude)
+    if (cents === null) return null
+    return s === 'despesa' ? -Math.abs(cents) : Math.abs(cents)
   }
 
   function onAmountChange(v: string) {
-    setAmount(v)
-    const cents = parseToCents(v)
+    const clean = v.replace(/-/g, '') // campo é só magnitude positiva
+    setAmount(clean)
+    const cents = signedCents(clean, sign)
     if (cents !== null) {
       const guess = guessEntryType(cents, refs.guessConfig)
       if (guess) {
@@ -50,15 +56,56 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
     }
   }
 
+  function pickSign(s: Sign) {
+    setSign(s)
+    const cents = signedCents(amount, s)
+    if (cents !== null) {
+      // valor presente: redetecta categoria com o novo sinal (nunca incompatível)
+      const guess = guessEntryType(cents, refs.guessConfig)
+      setType(guess ?? categoryAfterSignChange(type, s))
+      setAutoType(!!guess)
+    } else {
+      setType(categoryAfterSignChange(type, s))
+    }
+  }
+
+  function pickType(t: string) {
+    setType(t)
+    setAutoType(false)
+    const req = signForType(t)
+    if (req) setSign(req)
+    // sugere a taxa só quando o valor está vazio (nunca sobrescreve)
+    if (amount === '') {
+      if (t === 'mensal') setAmount(refs.defaultFee)
+      else if (t === 'avulso') setAmount(refs.defaultAvulso)
+    }
+  }
+
   function reset() {
     formRef.current?.reset()
+    setSign('receita')
     setType('mensal')
     setAmount(refs.defaultFee)
     setPlayerId(null)
+    setGameDate(refs.defaultGame)
     setAutoType(false)
   }
 
+  async function onCreatePlayer(name: string): Promise<PlayerOption | null> {
+    const fd = new FormData()
+    fd.set('name', name)
+    const r = await createPlayer(fd)
+    if (r.ok) {
+      const opt = { id: r.player.id, name: r.player.name }
+      setPlayers((prev) => [...prev, opt])
+      return opt
+    }
+    // conflito (acento/maiúscula): seleciona o existente
+    return players.find((p) => p.name.toLowerCase() === name.toLowerCase()) ?? null
+  }
+
   function submit(formData: FormData, confirmed = false) {
+    formData.set('amount', sign === 'despesa' ? `-${amount}` : amount)
     if (confirmed) formData.set('confirmed', 'true')
     start(async () => {
       const r: ActionResult = await createEntry(formData)
@@ -80,10 +127,30 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
       <input type="hidden" name="month" value={refs.month} />
       <input type="hidden" name="type" value={type} />
       <input type="hidden" name="playerId" value={playerId ?? ''} />
+      <input type="hidden" name="gameDate" value={gameDate} />
 
-      {/* Valor primeiro: ao digitar, o tipo é detectado automaticamente */}
+      {/* Despesa / Receita — define o sinal (valor digitado é sempre positivo) */}
+      <div className="grid grid-cols-2 gap-1.5">
+        {(['despesa', 'receita'] as const).map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => pickSign(s)}
+            className={`rounded-xl border px-3 py-2 text-sm font-bold uppercase tracking-wide transition ${
+              sign === s
+                ? s === 'despesa'
+                  ? 'border-clay bg-clay text-pitch'
+                  : 'border-volt bg-volt text-pitch'
+                : 'border-line bg-transparent text-moss hover:text-ink'
+            }`}
+          >
+            {s === 'despesa' ? 'Despesa' : 'Receita'}
+          </button>
+        ))}
+      </div>
+
       <label className="block">
-        <span className="label">Valor (negativo = despesa)</span>
+        <span className="label">Valor</span>
         <input
           name="amount" value={amount} onChange={(e) => onAmountChange(e.target.value)} required
           inputMode="decimal" placeholder="75,00"
@@ -93,7 +160,7 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
 
       <div>
         <div className="mb-1.5 flex items-center justify-between">
-          <span className="label">Tipo</span>
+          <span className="label">Categoria</span>
           {autoType && <span className="text-[10px] font-bold text-volt">detectado pelo valor</span>}
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -117,8 +184,21 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
       <label className="block">
         <span className="label">Jogador (opcional p/ quadra e goleiro)</span>
         <div className="mt-1.5">
-          <PlayerCombobox players={refs.players} value={playerId} onChange={setPlayerId} />
+          <PlayerCombobox players={players} value={playerId} onChange={setPlayerId} onCreate={onCreatePlayer} />
         </div>
+      </label>
+
+      <label className="block">
+        <span className="label">Jogo (terça)</span>
+        <select
+          name="gameDateSelect" value={gameDate} onChange={(e) => setGameDate(e.target.value)}
+          className="input mt-1.5"
+        >
+          <option value="">— (sem jogo)</option>
+          {refs.gameOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
       </label>
 
       {type === 'evento' && (
@@ -142,8 +222,6 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
         <p className={`text-xs font-bold ${msg.kind === 'ok' ? 'text-volt' : 'text-clay'}`}>
           {msg.text}
           {msg.kind === 'confirm' && (
-            // Nota: o re-submit lê o form no clique do Confirmar; se o admin alterar campos
-            // entre o aviso e a confirmação, vale o estado atual (aceitável p/ 1 admin).
             <button
               type="button"
               onClick={() => formRef.current && submit(new FormData(formRef.current), true)}
