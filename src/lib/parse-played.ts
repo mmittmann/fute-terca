@@ -9,7 +9,10 @@ export interface ParsedList {
   out: string[]
 }
 
-const EMOJI = /[☀-➿️‍\u{1F000}-\u{1FAFF}]/gu
+// Remove pictográficos, bandeiras, keycaps, ZWJ, variation selector
+// e enclosing keycap — sem tocar em dígitos/letras (a numeração "1 -"
+// é tratada à parte).
+const EMOJI = /[\p{Extended_Pictographic}\p{Regional_Indicator}\u200D\uFE0F\u20E3]/gu
 
 function clean(line: string): string {
   return line

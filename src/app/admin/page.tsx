@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { EntryForm } from '@/components/entry-form'
 import { EntryList, type EntryRow } from '@/components/entry-list'
 import { GameListCard } from '@/components/game-list-card'
-import { PostGameReconcile, type ReconcilePaid } from '@/components/post-game-reconcile'
+import { PostGameReconcile, type PaidEntry } from '@/components/post-game-reconcile'
 import {
   getAllPlayers, getEvents, getFeeTable, getMonth, getMonthEntries, getSettingsMap, getAllYearSettings,
 } from '@/db/queries'
@@ -88,11 +88,23 @@ export default async function AdminPage() {
     paidMensalNames,
   })
 
-  // Conferência pós-jogo: quem pagou (mensal/avulso positivo) no mês do jogo
+  // Conferência pós-jogo: lançamentos pagos (mensal/avulso) do MÊS ATUAL com a
+  // terça do jogo (gameDate); o componente escopa por terça no cliente.
   const reconcilePlayers = allPlayers.map((p) => ({ name: p.name, aliases: p.aliases }))
-  const reconcilePaid: ReconcilePaid[] = gameEntries
+  const reconcilePaid: PaidEntry[] = monthEntries
     .filter((e) => (e.type === 'mensal' || e.type === 'avulso') && e.amountCents > 0 && e.playerId)
-    .map((e) => ({ name: nameById.get(e.playerId!) ?? '?', tipo: e.type as 'mensal' | 'avulso' }))
+    .map((e) => ({
+      name: nameById.get(e.playerId!) ?? '?',
+      tipo: e.type as 'mensal' | 'avulso',
+      gameDate: e.gameDate,
+    }))
+  // Default do seletor: a terça mais recente <= hoje (o jogo que acabou de acontecer).
+  const reconcileDefaultGame = (() => {
+    if (gameOptions.length === 0) return ''
+    if (todayDay === null) return gameOptions[gameOptions.length - 1].value
+    const past = gameOptions.filter((o) => Number(o.value.slice(-2)) <= todayDay)
+    return (past.length ? past[past.length - 1] : gameOptions[0]).value
+  })()
 
   return (
     <main>
@@ -120,7 +132,12 @@ export default async function AdminPage() {
         </div>
 
         <div className="rise rise-2">
-          <PostGameReconcile players={reconcilePlayers} paid={reconcilePaid} />
+          <PostGameReconcile
+            players={reconcilePlayers}
+            paidEntries={reconcilePaid}
+            gameOptions={gameOptions}
+            defaultGame={reconcileDefaultGame}
+          />
         </div>
 
         {fee === null && (

@@ -1,37 +1,44 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import type { GameOption } from '@/lib/game-options'
 import { buildAliasMap, type PlayerAliases } from '@/lib/normalize'
 import { parsePlayedList } from '@/lib/parse-played'
-import { reconcilePayments, type ReconcileResult } from '@/lib/reconcile'
+import {
+  reconcilePayments, scopePaidForGame, type PaidEntry, type ReconcileResult,
+} from '@/lib/reconcile'
 
-export interface ReconcilePaid {
-  name: string
-  tipo: 'mensal' | 'avulso'
-}
+export type { PaidEntry } from '@/lib/reconcile'
 
 export function PostGameReconcile({
   players,
-  paid,
+  paidEntries,
+  gameOptions,
+  defaultGame,
 }: {
   players: PlayerAliases[]
-  paid: ReconcilePaid[]
+  paidEntries: PaidEntry[]
+  gameOptions: GameOption[]
+  defaultGame: string
 }) {
   const [text, setText] = useState('')
+  const [game, setGame] = useState(defaultGame)
   const [result, setResult] = useState<(ReconcileResult & { goalkeepers: string[] }) | null>(null)
   const [copied, setCopied] = useState(false)
 
   const aliasMap = useMemo(() => buildAliasMap(players), [players])
-  const paidByCanonical = useMemo(
-    () => new Map(paid.map((p) => [p.name, p.tipo] as const)),
-    [paid],
-  )
 
-  function conferir() {
-    const parsed = parsePlayedList(text)
+  function runReconcile(gameDate: string, txt: string) {
+    const parsed = parsePlayedList(txt)
+    const paidByCanonical = scopePaidForGame(paidEntries, gameDate)
     const r = reconcilePayments(parsed.players, paidByCanonical, aliasMap)
     setResult({ ...r, goalkeepers: parsed.goalkeepers })
     setCopied(false)
+  }
+
+  function onGameChange(gameDate: string) {
+    setGame(gameDate)
+    if (text.trim()) runReconcile(gameDate, text) // recalcula na hora, sem recarregar
   }
 
   async function copyCobrar() {
@@ -50,8 +57,22 @@ export function PostGameReconcile({
     <section className="card p-4">
       <h2 className="label mb-3">Conferência pós-jogo</h2>
       <p className="mb-2 text-[11px] leading-relaxed text-moss/70">
-        Cole a lista final do WhatsApp. Eu cruzo com quem pagou no mês e aponto quem jogou e não acertou.
+        Cole a lista final do WhatsApp. Eu cruzo com quem pagou <strong>este jogo</strong> e aponto quem jogou e não acertou.
       </p>
+
+      <label className="label mb-1 block !text-moss/70">Jogo</label>
+      <select
+        value={game}
+        onChange={(e) => onGameChange(e.target.value)}
+        className="input mb-3"
+        disabled={gameOptions.length === 0}
+      >
+        {gameOptions.length === 0 && <option value="">Sem terças neste mês</option>}
+        {gameOptions.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -59,7 +80,11 @@ export function PostGameReconcile({
         placeholder="Cole aqui a lista de quem jogou…"
         className="input resize-y font-sans"
       />
-      <button onClick={conferir} disabled={!text.trim()} className="btn-volt mt-3 w-full">
+      <button
+        onClick={() => runReconcile(game, text)}
+        disabled={!text.trim() || !game}
+        className="btn-volt mt-3 w-full"
+      >
         Conferir
       </button>
 
