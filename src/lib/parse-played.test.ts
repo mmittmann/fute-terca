@@ -41,4 +41,9 @@ describe('parsePlayedList', () => {
     expect(r.players).toEqual(['Murilo', 'Tales', 'Gui'])
     expect(r.out).toEqual([])
   })
+
+  it('remove emojis fora da faixa antiga (⭐ ™ ⏰ 🇧🇷)', () => {
+    const r = parsePlayedList('Murilo ⭐\nTales ™\nGui ⏰\nSamuka \u{1F1E7}\u{1F1F7}')
+    expect(r.players).toEqual(['Murilo', 'Tales', 'Gui', 'Samuka'])
+  })
 })

@@ -13,6 +13,10 @@ import { requireAdmin } from '@/auth/require-admin'
 
 export type ActionResult = { ok: true } | { ok: false; error: string; needsConfirm?: boolean }
 
+export type CreatePlayerResult =
+  | { ok: true; player: { id: number; name: string } }
+  | { ok: false; error: string }
+
 function revalidateAll() {
   revalidatePath('/', 'layout')
 }
@@ -25,6 +29,7 @@ const entrySchema = z.object({
   playerId: z.preprocess((v) => (v === '' || v == null ? undefined : v), z.coerce.number().int().positive().optional()),
   eventId: z.preprocess((v) => (v === '' || v == null ? undefined : v), z.coerce.number().int().positive().optional()),
   description: z.string().trim().max(200).optional(),
+  gameDate: z.string().optional(), // 'YYYY-MM-DD' ou '' (sem jogo)
   confirmed: z.literal('true').transform(() => true).optional(),
 })
 
@@ -57,6 +62,7 @@ export async function createEntry(formData: FormData): Promise<ActionResult> {
     year: d.year, month: d.month, type: d.type, amountCents,
     playerId: d.playerId ?? null, eventId: d.eventId ?? null,
     description: d.description || null,
+    gameDate: d.gameDate || null,
   })
   revalidateAll()
   return { ok: true }
@@ -76,7 +82,7 @@ const playerSchema = z.object({
   name: z.string().trim().min(1).max(60),
 })
 
-export async function createPlayer(formData: FormData): Promise<ActionResult> {
+export async function createPlayer(formData: FormData): Promise<CreatePlayerResult> {
   await requireAdmin()
   const parsed = playerSchema.safeParse(Object.fromEntries(formData))
   if (!parsed.success) return { ok: false, error: 'Nome inválido' }
@@ -87,7 +93,7 @@ export async function createPlayer(formData: FormData): Promise<ActionResult> {
     .returning({ id: players.id })
   if (rows.length === 0) return { ok: false, error: 'Jogador já existe' }
   revalidateAll()
-  return { ok: true }
+  return { ok: true, player: { id: rows[0].id, name: parsed.data.name } }
 }
 
 const monthSchema = z.object({

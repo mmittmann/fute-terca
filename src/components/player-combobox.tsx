@@ -12,11 +12,13 @@ export function PlayerCombobox({
   players,
   value,
   onChange,
+  onCreate,
   placeholder = 'Buscar jogador…',
 }: {
   players: PlayerOption[]
   value: number | null
   onChange: (id: number | null) => void
+  onCreate?: (name: string) => Promise<PlayerOption | null>
   placeholder?: string
 }) {
   const selected = players.find((p) => p.id === value) ?? null
@@ -124,8 +126,29 @@ export function PlayerCombobox({
         </ul>
       )}
       {open && query.trim() && filtered.length === 0 && (
-        <div className="absolute z-20 mt-1.5 w-full rounded-xl border border-line bg-card px-3 py-2.5 text-sm text-moss shadow-[0_18px_40px_rgba(0,0,0,0.5)]">
-          Nenhum jogador encontrado.
+        <div
+          className="absolute z-20 mt-1.5 w-full rounded-xl border border-line bg-card p-1 shadow-[0_18px_40px_rgba(0,0,0,0.5)]"
+          onMouseDown={() => {
+            if (blurTimer.current) clearTimeout(blurTimer.current)
+          }}
+        >
+          {onCreate ? (
+            <button
+              type="button"
+              onClick={async () => {
+                const created = await onCreate(query.trim())
+                if (created) choose(created)
+              }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm font-bold text-volt transition hover:text-ink"
+            >
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-volt/40 bg-pitch text-base leading-none text-volt">
+                +
+              </span>
+              Adicionar “{query.trim()}”
+            </button>
+          ) : (
+            <div className="px-3 py-2.5 text-sm text-moss">Nenhum jogador encontrado.</div>
+          )}
         </div>
       )}
     </div>

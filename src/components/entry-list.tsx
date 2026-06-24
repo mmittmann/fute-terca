@@ -9,6 +9,12 @@ export interface EntryRow {
   label: string
   type: string
   amountCents: number
+  gameDate?: string | null // 'YYYY-MM-DD'
+}
+
+function ddmm(iso: string): string {
+  const [, m, d] = iso.split('-')
+  return `${d}/${m}`
 }
 
 export function EntryList({ rows }: { rows: EntryRow[] }) {
@@ -22,6 +28,11 @@ export function EntryList({ rows }: { rows: EntryRow[] }) {
             <span className="shrink-0 rounded-md border border-line bg-pitch px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-moss">
               {r.type}
             </span>
+            {r.gameDate && (
+              <span className="shrink-0 rounded-md border border-line/60 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-moss/80">
+                {ddmm(r.gameDate)}
+              </span>
+            )}
           </span>
           <span className="flex shrink-0 items-center gap-2.5">
             <span className={`font-display text-sm tracking-wide ${r.amountCents >= 0 ? 'text-volt' : 'text-clay'}`}>

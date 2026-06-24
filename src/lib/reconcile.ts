@@ -11,6 +11,31 @@ export interface ReconcileResult {
   pagaramNaoJogaram: string[]
 }
 
+export interface PaidEntry {
+  name: string
+  tipo: 'mensal' | 'avulso'
+  gameDate: string | null // 'YYYY-MM-DD' do jogo, ou null (sem jogo específico)
+}
+
+/**
+ * Monta o conjunto de quem "pagou este jogo" para a terça selecionada:
+ * - mensal: vale o mês todo, então todo mensalista pago conta;
+ * - avulso: só conta se o lançamento for da terça selecionada (`gameDate`).
+ * Quando o mesmo nome tem mensal e avulso, mensal prevalece.
+ */
+export function scopePaidForGame(
+  entries: PaidEntry[],
+  selectedGameDate: string,
+): Map<string, 'mensal' | 'avulso'> {
+  const paid = new Map<string, 'mensal' | 'avulso'>()
+  for (const e of entries) {
+    if (e.tipo === 'avulso' && e.gameDate !== selectedGameDate) continue
+    if (paid.get(e.name) === 'mensal') continue
+    paid.set(e.name, e.tipo)
+  }
+  return paid
+}
+
 export function reconcilePayments(
   played: string[],
   paidByCanonical: Map<string, 'mensal' | 'avulso'>,

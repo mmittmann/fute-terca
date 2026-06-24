@@ -47,6 +47,7 @@ export const entries = pgTable('entries', {
   amountCents: integer('amount_cents').notNull(), // + receita / - despesa
   eventId: integer('event_id').references(() => events.id),
   description: text('description'),
+  gameDate: date('game_date'), // terça do jogo (opcional); null = sem jogo específico
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 

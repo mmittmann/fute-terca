@@ -2,13 +2,14 @@ import Link from 'next/link'
 import { EntryForm } from '@/components/entry-form'
 import { EntryList, type EntryRow } from '@/components/entry-list'
 import { GameListCard } from '@/components/game-list-card'
-import { PostGameReconcile, type ReconcilePaid } from '@/components/post-game-reconcile'
+import { PostGameReconcile, type PaidEntry } from '@/components/post-game-reconcile'
 import {
   getAllPlayers, getEvents, getFeeTable, getMonth, getMonthEntries, getSettingsMap, getAllYearSettings,
 } from '@/db/queries'
 import { currentYearMonth, monthLabel } from '@/lib/dates'
 import { monthlyFeeCents } from '@/lib/fees'
 import { buildGameListMessage } from '@/lib/game-list'
+import { defaultGameValue, tuesdayOptions } from '@/lib/game-options'
 import { monthSummary } from '@/lib/month-summary'
 import { formatBRL } from '@/lib/money'
 import { tuesdaysInMonth } from '@/lib/tuesdays'
@@ -36,6 +37,15 @@ function nextTuesdaySP(): { label: string; year: number; month: number } {
 export default async function AdminPage() {
   const { year, month } = currentYearMonth()
   const game = nextTuesdaySP()
+
+  // Opções do campo "Jogo": terças do mês + default na terça mais próxima de hoje (SP).
+  const spYmd = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date())
+  const [spY, spM, spD] = spYmd.split('-').map(Number)
+  const todayDay = spY === year && spM === month ? spD : null
+  const gameOptions = tuesdayOptions(year, month)
+  const defaultGame = defaultGameValue(year, month, todayDay)
   const [settings, allPlayers, eventsList, monthRow, monthEntries, gameEntries, feeTable, yearsCfg] = await Promise.all([
     getSettingsMap(), getAllPlayers(), getEvents(), getMonth(year, month),
     getMonthEntries(year, month), getMonthEntries(game.year, game.month), getFeeTable(), getAllYearSettings(),
@@ -59,6 +69,7 @@ export default async function AdminPage() {
     label: e.playerId ? (nameById.get(e.playerId) ?? '?') : (e.description ?? e.type),
     type: e.type,
     amountCents: e.amountCents,
+    gameDate: e.gameDate,
   }))
 
   // Lista do jogo (próxima terça): mensalistas pagos no mês do jogo, em ordem cronológica
@@ -77,11 +88,23 @@ export default async function AdminPage() {
     paidMensalNames,
   })
 
-  // Conferência pós-jogo: quem pagou (mensal/avulso positivo) no mês do jogo
+  // Conferência pós-jogo: lançamentos pagos (mensal/avulso) do MÊS ATUAL com a
+  // terça do jogo (gameDate); o componente escopa por terça no cliente.
   const reconcilePlayers = allPlayers.map((p) => ({ name: p.name, aliases: p.aliases }))
-  const reconcilePaid: ReconcilePaid[] = gameEntries
+  const reconcilePaid: PaidEntry[] = monthEntries
     .filter((e) => (e.type === 'mensal' || e.type === 'avulso') && e.amountCents > 0 && e.playerId)
-    .map((e) => ({ name: nameById.get(e.playerId!) ?? '?', tipo: e.type as 'mensal' | 'avulso' }))
+    .map((e) => ({
+      name: nameById.get(e.playerId!) ?? '?',
+      tipo: e.type as 'mensal' | 'avulso',
+      gameDate: e.gameDate,
+    }))
+  // Default do seletor: a terça mais recente <= hoje (o jogo que acabou de acontecer).
+  const reconcileDefaultGame = (() => {
+    if (gameOptions.length === 0) return ''
+    if (todayDay === null) return gameOptions[gameOptions.length - 1].value
+    const past = gameOptions.filter((o) => Number(o.value.slice(-2)) <= todayDay)
+    return (past.length ? past[past.length - 1] : gameOptions[0]).value
+  })()
 
   return (
     <main>
@@ -109,7 +132,12 @@ export default async function AdminPage() {
         </div>
 
         <div className="rise rise-2">
-          <PostGameReconcile players={reconcilePlayers} paid={reconcilePaid} />
+          <PostGameReconcile
+            players={reconcilePlayers}
+            paidEntries={reconcilePaid}
+            gameOptions={gameOptions}
+            defaultGame={reconcileDefaultGame}
+          />
         </div>
 
         {fee === null && (
@@ -127,6 +155,8 @@ export default async function AdminPage() {
               defaultFee: centsToInput(fee),
               defaultAvulso: centsToInput(yearCfg?.avulsoFeeCents ?? null),
               guessConfig,
+              gameOptions,
+              defaultGame,
             }}
           />
         </div>
