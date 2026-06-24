@@ -24,6 +24,7 @@ export function PostGameReconcile({
   const [text, setText] = useState('')
   const [game, setGame] = useState(defaultGame)
   const [result, setResult] = useState<(ReconcileResult & { goalkeepers: string[] }) | null>(null)
+  const [removed, setRemoved] = useState<Set<number>>(new Set())
   const [copied, setCopied] = useState(false)
 
   const aliasMap = useMemo(() => buildAliasMap(players), [players])
@@ -33,6 +34,12 @@ export function PostGameReconcile({
     const paidByCanonical = scopePaidForGame(paidEntries, gameDate)
     const r = reconcilePayments(parsed.players, paidByCanonical, aliasMap)
     setResult({ ...r, goalkeepers: parsed.goalkeepers })
+    setRemoved(new Set())
+    setCopied(false)
+  }
+
+  function removeFromCobrar(index: number) {
+    setRemoved((prev) => new Set(prev).add(index))
     setCopied(false)
   }
 
@@ -43,7 +50,10 @@ export function PostGameReconcile({
 
   async function copyCobrar() {
     if (!result) return
-    const names = result.cobrar.map((c) => c.name).join(', ')
+    const names = result.cobrar
+      .filter((_, i) => !removed.has(i))
+      .map((c) => c.name)
+      .join(', ')
     try {
       await navigator.clipboard.writeText(names)
       setCopied(true)
@@ -90,27 +100,41 @@ export function PostGameReconcile({
 
       {result && (
         <div className="mt-4 flex flex-col gap-4">
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="label !text-clay">Cobrar · jogou e não pagou ({result.cobrar.length})</span>
-              {result.cobrar.length > 0 && (
-                <button onClick={copyCobrar} className="btn-ghost !text-[11px]">
-                  {copied ? 'Copiado ✓' : 'Copiar nomes'}
-                </button>
-              )}
-            </div>
-            {result.cobrar.length === 0 ? (
-              <p className="text-xs text-moss">Todo mundo que jogou pagou. 🎉</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {result.cobrar.map((c, i) => (
-                  <span key={`${c.name}-${i}`} className="chip-clay">
-                    {c.name}{!c.cadastrado && <span className="opacity-70"> · novo</span>}
-                  </span>
-                ))}
+          {(() => {
+            const visibleCount = result.cobrar.length - removed.size
+            return (
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="label !text-clay">Cobrar · jogou e não pagou ({visibleCount})</span>
+                  {visibleCount > 0 && (
+                    <button onClick={copyCobrar} className="btn-ghost !text-[11px]">
+                      {copied ? 'Copiado ✓' : 'Copiar nomes'}
+                    </button>
+                  )}
+                </div>
+                {visibleCount === 0 ? (
+                  <p className="text-xs text-moss">Todo mundo que jogou pagou. 🎉</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {result.cobrar.map((c, i) =>
+                      removed.has(i) ? null : (
+                        <span key={`${c.name}-${i}`} className="chip-clay inline-flex items-center gap-1">
+                          {c.name}{!c.cadastrado && <span className="opacity-70"> · novo</span>}
+                          <button
+                            onClick={() => removeFromCobrar(i)}
+                            aria-label={`Remover ${c.name} da cobrança`}
+                            className="-mr-0.5 ml-0.5 leading-none opacity-60 hover:opacity-100"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ),
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            )
+          })()}
 
           <div>
             <span className="label">Pagaram e jogaram ({result.pagaramEjogaram.length})</span>
