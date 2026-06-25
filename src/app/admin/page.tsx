@@ -56,11 +56,12 @@ export default async function AdminPage() {
   const fee = monthlyFeeCents(feeTable, year, gamesCount)
   const yearCfg = yearsCfg.find((y) => y.year === year)
   const summary = monthSummary(monthEntries)
-  const guessConfig = {
-    monthlyFeeCents: feeTable.filter((f) => f.year === year).map((f) => f.feeCents),
-    avulsoFeeCents: yearCfg?.avulsoFeeCents ?? 0,
-    courtFeePerGameCents: yearCfg?.courtFeePerGameCents ?? 0,
-    goalkeeperFeePerGameCents: yearCfg?.goalkeeperFeePerGameCents ?? 0,
+  // Valor padrão por categoria (autopreenche o campo Valor ao selecionar a categoria).
+  const entryDefaults = {
+    mensal: centsToInput(fee),
+    avulso: centsToInput(yearCfg?.avulsoFeeCents ?? null),
+    quadra: centsToInput(yearCfg?.courtFeePerGameCents ?? null),
+    goleiro: centsToInput(yearCfg?.goalkeeperFeePerGameCents ?? null),
   }
   const nameById = new Map(allPlayers.map((p) => [p.id, p.name]))
 
@@ -152,9 +153,7 @@ export default async function AdminPage() {
               players: allPlayers.map((p) => ({ id: p.id, name: p.name })),
               events: eventsList.map((ev) => ({ id: ev.id, name: ev.name })),
               year, month,
-              defaultFee: centsToInput(fee),
-              defaultAvulso: centsToInput(yearCfg?.avulsoFeeCents ?? null),
-              guessConfig,
+              defaults: entryDefaults,
               gameOptions,
               defaultGame,
             }}

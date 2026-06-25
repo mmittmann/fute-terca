@@ -4,22 +4,21 @@ import { useRef, useState, useTransition } from 'react'
 import { createEntry, createPlayer, type ActionResult } from '@/app/admin/actions'
 import { PlayerCombobox, type PlayerOption } from '@/components/player-combobox'
 import { categoryAfterSignChange, signForType, type Sign } from '@/lib/entry-sign'
-import { guessEntryType, type GuessConfig } from '@/lib/guess-type'
-import { parseToCents } from '@/lib/money'
 
 const TYPES = [
   ['mensal', 'Mensal'], ['avulso', 'Avulso'], ['quadra', 'Quadra'], ['goleiro', 'Goleiro'],
   ['evento', 'Evento'], ['camisa', 'Camisa'], ['outro', 'Outro'],
 ] as const
 
+/** Valor padrão por categoria (magnitude "75,00"); categorias fora do mapa não autopreenchem. */
+export type CategoryDefaults = Partial<Record<string, string>>
+
 export interface FormRefs {
   players: { id: number; name: string }[]
   events: { id: number; name: string }[]
   year: number
   month: number
-  defaultFee: string // ex: "75,00" — pré-preenche no tipo mensal (só se vazio)
-  defaultAvulso: string
-  guessConfig: GuessConfig
+  defaults: CategoryDefaults // ex: { mensal: "75,00", avulso: "20,00", quadra: "240,00", goleiro: "45,00" }
   gameOptions: { value: string; label: string }[]
   defaultGame: string // value 'YYYY-MM-DD' da terça default
 }
@@ -28,56 +27,35 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
   const formRef = useRef<HTMLFormElement>(null)
   const [sign, setSign] = useState<Sign>('receita')
   const [type, setType] = useState<string>('mensal')
-  const [amount, setAmount] = useState(refs.defaultFee)
+  const [amount, setAmount] = useState(refs.defaults.mensal ?? '')
+  const [valueIsAuto, setValueIsAuto] = useState(true) // valor foi preenchido pela categoria (vs. digitado)
   const [playerId, setPlayerId] = useState<number | null>(null)
   const [gameDate, setGameDate] = useState(refs.defaultGame)
   const [players, setPlayers] = useState<PlayerOption[]>(refs.players)
-  const [autoType, setAutoType] = useState(false) // tipo veio do valor digitado
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err' | 'confirm'; text: string } | null>(null)
   const [pending, start] = useTransition()
 
-  // valor com sinal (despesa = negativo) p/ detecção e envio
-  function signedCents(magnitude: string, s: Sign): number | null {
-    const cents = parseToCents(magnitude)
-    if (cents === null) return null
-    return s === 'despesa' ? -Math.abs(cents) : Math.abs(cents)
-  }
-
   function onAmountChange(v: string) {
-    const clean = v.replace(/-/g, '') // campo é só magnitude positiva
-    setAmount(clean)
-    const cents = signedCents(clean, sign)
-    if (cents !== null) {
-      const guess = guessEntryType(cents, refs.guessConfig)
-      if (guess) {
-        setType(guess)
-        setAutoType(true)
-      }
-    }
+    setAmount(v.replace(/-/g, '')) // campo é só magnitude positiva
+    setValueIsAuto(false) // a partir de agora o valor é "manual"
   }
 
   function pickSign(s: Sign) {
     setSign(s)
-    const cents = signedCents(amount, s)
-    if (cents !== null) {
-      // valor presente: redetecta categoria com o novo sinal (nunca incompatível)
-      const guess = guessEntryType(cents, refs.guessConfig)
-      setType(guess ?? categoryAfterSignChange(type, s))
-      setAutoType(!!guess)
-    } else {
-      setType(categoryAfterSignChange(type, s))
-    }
+    // mantém a categoria se compatível com o novo sinal; senão cai em 'outro'
+    setType((t) => categoryAfterSignChange(t, s))
   }
 
   function pickType(t: string) {
     setType(t)
-    setAutoType(false)
     const req = signForType(t)
     if (req) setSign(req)
-    // sugere a taxa só quando o valor está vazio (nunca sobrescreve)
-    if (amount === '') {
-      if (t === 'mensal') setAmount(refs.defaultFee)
-      else if (t === 'avulso') setAmount(refs.defaultAvulso)
+    // autopreenche o valor da categoria enquanto o valor for automático (ou estiver vazio);
+    // categorias sem default (evento/camisa/outro) preservam o que estiver no campo
+    const def = refs.defaults[t]
+    if (def && (valueIsAuto || amount === '')) { // "" (preço não configurado) = sem default
+      setAmount(def)
+      setValueIsAuto(true)
     }
   }
 
@@ -85,10 +63,10 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
     formRef.current?.reset()
     setSign('receita')
     setType('mensal')
-    setAmount(refs.defaultFee)
+    setAmount(refs.defaults.mensal ?? '')
+    setValueIsAuto(true)
     setPlayerId(null)
     setGameDate(refs.defaultGame)
-    setAutoType(false)
   }
 
   async function onCreatePlayer(name: string): Promise<PlayerOption | null> {
@@ -149,20 +127,8 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
         ))}
       </div>
 
-      <label className="block">
-        <span className="label">Valor</span>
-        <input
-          name="amount" value={amount} onChange={(e) => onAmountChange(e.target.value)} required
-          inputMode="decimal" placeholder="75,00"
-          className="input mt-1.5 font-display tracking-wide"
-        />
-      </label>
-
       <div>
-        <div className="mb-1.5 flex items-center justify-between">
-          <span className="label">Categoria</span>
-          {autoType && <span className="text-[10px] font-bold text-volt">detectado pelo valor</span>}
-        </div>
+        <span className="label mb-1.5 block">Categoria</span>
         <div className="flex flex-wrap gap-1.5">
           {TYPES.map(([val, label]) => (
             <button
@@ -180,6 +146,15 @@ export function EntryForm({ refs }: { refs: FormRefs }) {
           ))}
         </div>
       </div>
+
+      <label className="block">
+        <span className="label">Valor</span>
+        <input
+          name="amount" value={amount} onChange={(e) => onAmountChange(e.target.value)} required
+          inputMode="decimal" placeholder="75,00"
+          className="input mt-1.5 font-display tracking-wide"
+        />
+      </label>
 
       <label className="block">
         <span className="label">Jogador (opcional p/ quadra e goleiro)</span>
